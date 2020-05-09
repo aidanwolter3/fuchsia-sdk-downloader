@@ -1,0 +1,59 @@
+// Copyright 2019 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.hwinfo;
+using fuchsia.intl;
+
+const uint8 MAX_VALUE_LENGTH = 255;
+
+/// Collection of properties that is unique per device.
+table DeviceInfo {
+    1: string serial_number;
+};
+
+/// Collection of properties that is shared with other devices within the same
+/// product line.
+table ProductInfo {
+    1: string sku;
+    2: string language;
+    3: fuchsia.intl.RegulatoryDomain regulatory_domain;
+    4: vector<fuchsia.intl.LocaleId> locale_list;
+    5: string name;
+    6: string model;
+    7: string manufacturer;
+    8: string build_date;
+    9: string:MAX_VALUE_LENGTH build_name;
+    10: string:MAX_VALUE_LENGTH colorway;
+    11: string:MAX_VALUE_LENGTH display;
+    12: string:MAX_VALUE_LENGTH memory;
+    13: string:MAX_VALUE_LENGTH nand_storage;
+    14: string:MAX_VALUE_LENGTH emmc_storage;
+    15: string:MAX_VALUE_LENGTH microphone;
+    16: string:MAX_VALUE_LENGTH audio_amplifier;
+};
+
+/// Collection of properties that are common among a set of devices based on
+/// hardware type
+table BoardInfo {
+    1: string name;
+    2: string revision;
+};
+
+/// Device provides an interface to retrieve device-specific properties.
+[Discoverable]
+protocol Device {
+    GetInfo() -> (DeviceInfo info);
+};
+
+/// Product provides an interface to retrieve product-specific properties.
+[Discoverable]
+protocol Product {
+    GetInfo() -> (ProductInfo info);
+};
+
+/// Board provides an interface to retrieve hardware-specific information.
+[Discoverable]
+protocol Board {
+    GetInfo() -> (BoardInfo info);
+};

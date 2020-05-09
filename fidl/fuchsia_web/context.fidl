@@ -1,0 +1,199 @@
+// Copyright 2019 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.web;
+
+using fuchsia.io;
+
+enum ContextError : int32 {
+    /// The remote debugging service was not opened.
+    REMOTE_DEBUGGING_PORT_NOT_OPENED = 1;
+};
+
+/// The top-level service interface which allows for the creation of Context resources.
+// TODO(fxb/29926): Remove ContextProvider in favor of launching Context instances directly.
+[Discoverable]
+protocol ContextProvider {
+    /// Creates a new browser [`fuchsia.web.Context`] whose state is wholly independent and
+    /// isolated from other Contexts.
+    ///
+    /// - `context`: An interface request which will receive a bound [`fuchsia.web.Context`]
+    ///   service.
+    Create(CreateContextParams params, request<Context> context);
+};
+
+/// Defines a provider which hosts resources from a [`fuchsia.io.Directory`]. Content can `GET`
+/// resource files via the provider, but not enumerate directories. Resources can be accessed by
+/// their URLs: `fuchsia-dir://<provider-name>/<path/to/resource>`
+///
+/// By default the MIME types of files are determined automatically by "sniffing" the contents of
+/// the files. No content encoding will be declared, which browsers will interpret as meaning
+/// `"text/plain"`.
+///
+/// Content type and encoding metadata may optionally be specified explicitly by metadata files,
+/// which reside alongside the file. Metadata is expressed in JSON files, named after the files
+/// they describe with a `"._metadata"` suffix.
+///
+/// For example, the file `"index.html"` would have the a metadata file called
+/// `"index.html._metadata"`, with the following contents:
+/// ```
+/// {
+///   "charset": "utf-8",
+///   "mime": "text/html"
+/// }
+/// ```
+table ContentDirectoryProvider {
+    /// Name of the provider. Must be non-empty and composed solely of alphanumerics, dots, and
+    /// dashes.
+    1: string:255 name;
+
+    /// Directory containing the files served by this provider.
+    2: fuchsia.io.Directory directory;
+};
+
+/// Feature flags that allow augmenting Context behavior. Some features require additional services
+/// in the service directory provided during context initialization. See
+/// [`fuchsia.web.CreateContextParams/service_directory`].
+bits ContextFeatureFlags : uint64 {
+    /// Enables network access. Requires the following services:
+    /// - [`fuchsia.net.NameLookup`]
+    /// - [`fuchsia.netstack.Netstack`]
+    /// - [`fuchsia.posix.socket.Provider`]
+    NETWORK = 0x1;
+
+    /// Enables audio input and output. Requires [`fuchsia.media.Audio`] and
+    /// [`fuchsia.media.SessionAudioConsumerFactory`] service.
+    AUDIO = 0x2;
+
+    /// Enables GPU-accelerated rendering of the web content. Requires the following services:
+    /// - [`fuchsia.sysmem.Allocator`]
+    /// - [`fuchsia.vulkan.loader.Loader`]
+    VULKAN = 0x4;
+
+    /// Enables hardware video decoding. `VULKAN` must be enabled as well. Requires
+    /// [`fuchsia.mediacodec.CodecFactory`] service.
+    HARDWARE_VIDEO_DECODER = 0x8;
+
+    /// Disables all software video decoders. Videos will be rendered only if they can be decoded
+    /// in hardware using [`fuchsia.mediacodec.CodecFactory`].
+    /// Requires the [`HARDWARE_VIDEO_DECODER`] flag.
+    HARDWARE_VIDEO_DECODER_ONLY = 0x10;
+
+    /// Enables Widevine CDM modules for EME API. `VULKAN` feature must be enabled as well.
+    /// Requires [`fuchsia.media.drm.Widevine`] service.
+    WIDEVINE_CDM = 0x20;
+
+    /// Allows embedders to render web content without graphical output or Scenic.
+    /// Not compatible with the [`VULKAN`] flag.
+    HEADLESS = 0x40;
+
+    /// Report telemetry data to the [`fuchsia.legacymetrics.MetricsRecorder`].
+    LEGACYMETRICS = 0x80;
+};
+
+table CreateContextParams {
+    /// Service directory to be used by the context. The following services must be present in the
+    /// directory:
+    /// - [`fuchsia.accessibility.semantics.SemanticsManager`]
+    /// - [`fuchsia.device.NameProvider`]
+    /// - [`fuchsia.fonts.Provider`]
+    /// - [`fuchsia.intl.PropertyProvider`]
+    /// - [`fuchsia.logger.LogSink`]
+    /// - [`fuchsia.process.Launcher`]
+    ///
+    /// The following services must be present in order to present web content in a Scenic view
+    /// using [`fuchsia.web.Frame/CreateView`]:
+    /// - [`fuchsia.ui.input.ImeService`]
+    /// - [`fuchsia.ui.input.ImeVisibilityService`]
+    /// - [`fuchsia.ui.scenic.Scenic`]
+    1: fuchsia.io.Directory service_directory;
+
+    /// Handle to the directory that will contain the [`fuchsia.web.Context`]'s persistent data. If
+    /// it is left unset, then the created [`fuchsia.web.Context`] will be stateless, with all of
+    /// its data discarded upon [`fuchsia.web.Context`] destruction.
+    ///
+    /// If set, `data_directory` must not be shared with any other [`fuchsia.web.Context`].
+    // TODO(fxb/29925): Provide an API to inform the caller when the `data_directory` can be safely
+    // removed.
+    2: fuchsia.io.Directory data_directory;
+
+    /// Optional string describing the embedding product to append to the User-Agent string.
+    /// See the specification for the
+    /// [HTTP User-Agent header](https://tools.ietf.org/html/rfc7231#section-5.5.3).
+    /// Requires that `user_agent_version` is also specified.
+    3: string:128 user_agent_product;
+
+    /// Optional version for the embedding product to append to the User-Agent string.
+    /// Requires that `user_agent_product` is also specified.
+    4: string:128 user_agent_version;
+
+    /// Enables Frames to be created with remote debugging enabled using the DevTools protocol. If
+    /// `port` is 0, then an ephemeral port will be used, which can be queried via the
+    /// [`fuchsia.web.Context/GetRemoteDebuggingPort`] API.
+    5: uint16 remote_debugging_port;
+
+    /// List of providers whose contents will be served by `fuchsia-dir://` URLs.
+    6: vector<ContentDirectoryProvider>:100 content_directories;
+
+    /// Optional features that should be enabled for this context. Some features may also require
+    /// additional services in `service_directory`.
+    7: ContextFeatureFlags features;
+
+    /// Enables PlayReady CDM for the Context using the specified string as a key system
+    /// string. The string should be a reverse domain name, as required by
+    /// [EME API](https://www.w3.org/TR/encrypted-media/#key-system). Requires
+    /// [`fuchsia.media.drm.PlayReady`] service.
+    8: string:128 playready_key_system;
+
+    /// Treat given insecure origins as secure origins. For the definition of secure contexts, see
+    /// https://w3c.github.io/webappsec-secure-contexts/ and
+    /// https://www.w3.org/TR/powerful-features/#is-origin-trustworthy.
+    /// Example value: `{"http://a.com", "http://b.com"}`.
+    9: vector<UrlSchemeAndHostName>:100 unsafely_treat_insecure_origins_as_secure;
+
+    /// Specifies a set of header names for which [Cross-Origin Resource Sharing
+    /// (CORS)](https://www.w3.org/TR/cors/) checks should not be enforced.
+    10: vector<bytes:MAX>:MAX cors_exempt_headers;
+};
+
+/// Manages browsing state (e.g. LocalStorage, cookies, etc) associated with a set of
+/// [`fuchsia.web.Frame`].
+protocol Context {
+    /// Creates a new [`fuchsia.web.Frame`] under this [`fuchsia.web.Context`]. Destruction of a
+    /// [`fuchsia.web.Context`] triggers the destruction of all of its associated
+    /// [`fuchsia.web.Frame`]. [`fuchsia.web.Frame`] can be transferred to another component but
+    /// cannot be shared across multiple components.
+    ///
+    /// - `frame`: An interface request that will be bound to the created [`fuchsia.web.Frame`].
+    CreateFrame(request<Frame> frame);
+
+    /// Similar to [`fuchsia.web.Context/CreateFrame`], with extra parameters.
+    [Transitional]
+    CreateFrameWithParams(CreateFrameParams params, request<Frame> frame);
+
+    /// Used to observe cookies for sites hosted under this Context.
+    [Transitional]
+    GetCookieManager(request<CookieManager> manager);
+
+    /// Waits until debugging is available on one or more Frames, and returns the DevTools port
+    /// number. Multiple calls may be queued to received the port number.
+    ///
+    /// If an error occured, the [`fuchsia.web.ContextError`] will be set to this value:
+    /// - `REMOTE_DEBUGGING_PORT_NOT_OPENED`: `remote_debugging_port` was not set in
+    ///   [`fuchsia.web.CreateContextParams`] or the remote debugging service failed to start.
+    GetRemoteDebuggingPort() -> (uint16 port) error ContextError;
+};
+
+table CreateFrameParams {
+    /// Set to true to enable remote debugging. The [`fuchsia.web.Frame`] will be closed with
+    /// `ERR_INVALID_ARGS` if `remote_debugging_port` was not set in
+    /// [`fuchsia.web.CreateContextParams`].
+    1: bool enable_remote_debugging;
+
+    /// Set to give the Frame a name to help distinguish it in debug contexts , such as system log
+    /// output. For example, the name may be added to messages from web content when they are logged
+    /// to the system logger. The name does not affect user- or web-visible behavior.
+    /// Popup Frames created by the Frame will have a name derived from the parent Frame's name.
+    2: string:MAX debug_name;
+};

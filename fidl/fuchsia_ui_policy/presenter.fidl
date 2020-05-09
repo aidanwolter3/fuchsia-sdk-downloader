@@ -1,0 +1,25 @@
+// Copyright 2016 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.ui.policy;
+
+using fuchsia.ui.views;
+
+/// The Presenter service provides a way for applications to ask that a view be
+/// added to a view tree, leaving any window management concerns up to the
+/// discretion of the presenter implementation.
+[Discoverable]
+protocol Presenter {
+    /// Request that the View's contents be displayed on the screen as a `Presentation`.
+    /// Each call to `PresentView` creates a new `Presentation`. Having more than one simultaneous
+    /// `Presentation` (i.e. calling `PresentView` more than once) is deprecated, and will
+    /// print a warning. In the future, this will result in an error and the channel being closed.
+    PresentView(fuchsia.ui.views.ViewHolderToken view_holder_token, request<Presentation>? presentation_request);
+
+    /// Request that the View's contents be displayed on the screen as a `Presentation`.
+    /// Destroys any existing presentations and replaces them with the new one.
+    /// This is true whether the existing view was created by a call to
+    /// PresentOrReplaceView or to PresentView.
+    PresentOrReplaceView(fuchsia.ui.views.ViewHolderToken view_holder_token, request<Presentation>? presentation_request);
+};

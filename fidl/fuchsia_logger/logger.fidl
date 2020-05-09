@@ -1,0 +1,131 @@
+// Copyright 2018 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.logger;
+
+using zx;
+
+enum LogLevelFilter : int8 {
+    NONE = -1;
+    INFO = 0;
+    WARN = 1;
+    ERROR = 2;
+    FATAL = 3;
+};
+
+/// Max number of tags that can be passed to filter by listener.
+const uint8 MAX_TAGS = 5;
+
+/// Max tag length that can be passed to filter by listener.
+const uint8 MAX_TAG_LEN_BYTES = 63;
+
+struct LogFilterOptions {
+    bool filter_by_pid;
+    uint64 pid;
+
+    bool filter_by_tid;
+    uint64 tid;
+
+    /// If more than zero, logs would be filtered based on verbosity and
+    /// `min_severity` would be ignored.
+    uint8 verbosity;
+
+    LogLevelFilter min_severity;
+
+    /// If non-empty, return all messages which contain at least one specified
+    /// tag.  If empty, messages will not be filtered by tag.
+    /// Passed tags should not be more than `MAX_TAG_LEN_BYTES` bytes in length
+    /// and max tags can be `MAX_TAGS`.
+    /// Listener would be discarded if the limit is not followed.
+    vector<string:MAX_TAG_LEN_BYTES>:MAX_TAGS tags;
+};
+
+/// Max tags that will be attached to a LogMessage.
+const uint8 MAX_TAGS_PER_LOG_MESSAGE = 5;
+
+/// Max byte size for message payload.
+const uint32 MAX_DATAGRAM_LEN_BYTES = 2032;
+
+struct LogMessage {
+    uint64 pid;
+    uint64 tid;
+    /// https://fuchsia.dev/fuchsia-src/reference/syscalls/clock_get_monotonic.md
+    zx.time time;
+    int32 severity;
+
+    /// See //zircon/system/ulib/syslog/include/syslog/wire_format.h. As messages
+    /// can be served out of order, this should only be logged if more than last
+    /// count.
+    uint32 dropped_logs;
+    vector<string:MAX_TAG_LEN_BYTES>:MAX_TAGS_PER_LOG_MESSAGE tags;
+    string:MAX_DATAGRAM_LEN_BYTES msg;
+};
+
+/// Interface for LogListenerSafe to register to listen to logs.
+[Discoverable]
+protocol Log {
+    [Deprecated]
+    Listen(LogListener log_listener, LogFilterOptions? options);
+
+    [Deprecated]
+    DumpLogs(LogListener log_listener, LogFilterOptions? options);
+
+    /// Listens to new log entries by calling Log() on `log_listener`. A null `options` indicates no
+    /// filtering is requested.
+    [Transitional]
+    ListenSafe(LogListenerSafe log_listener, LogFilterOptions? options);
+
+    /// Dumps all cached logs by calling LogMany() followed by Done() on `log_listener`.
+    /// A null `options` indicates no filtering is requested.
+    [Transitional]
+    DumpLogsSafe(LogListenerSafe log_listener, LogFilterOptions? options);
+};
+
+/// Drains a program's logs.
+[Discoverable]
+protocol LogSink {
+    /// Send this socket to be drained.
+    ///
+    /// See //zircon/system/ulib/syslog/include/syslog/wire_format.h for what is expected to be
+    /// received over the socket.
+    Connect(handle<socket> socket);
+
+    /// Send this socket to be drained, using the structured logs format.
+    ///
+    /// See //docs/development/logs/encodings.md for what is expected to be recieved over the
+    /// socket.
+    [Transitional]
+    ConnectStructured(handle<socket> socket);
+};
+
+/// Max log bytes per call to a listener.
+const uint64 MAX_LOG_MANY_SIZE_BYTES = 16384;
+
+/// Included temporarily for backwards compatiblity. Use `LogListenerSafe`.
+[Deprecated]
+protocol LogListener {
+    Log(LogMessage log);
+    LogMany(vector<LogMessage>:MAX log);
+    Done();
+};
+
+/// A listener who will notify the `Log` of the receipt of each message.
+protocol LogListenerSafe {
+    /// Called for single messages.
+    ///
+    /// The return value is used for flow control, and implementers should acknowledge receipt of
+    /// each message in order to continue receiving future messages.
+    Log(LogMessage log) -> ();
+
+    /// Called when serving cached logs.
+    ///
+    /// Max logs size per call is `MAX_LOG_MANY_SIZE_BYTES` bytes.
+    ///
+    /// The return value is used for flow control, and implementers should acknowledge receipt of
+    /// each batch in order to continue receiving future messages.
+    LogMany(vector<LogMessage>:MAX log) -> ();
+
+    /// Called when this listener was passed to `DumpLogsSafe()` and all cached logs have been sent.
+    Done();
+};

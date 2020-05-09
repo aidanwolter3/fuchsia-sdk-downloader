@@ -1,0 +1,54 @@
+// Copyright 2019 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.web;
+
+using CookieName = string;
+
+/// Provides methods for monitoring and accessing browser cookie state.
+protocol CookieManager {
+    /// Observe changes to all cookies named `name` that would be sent in a request to `url`.
+    ///
+    /// If neither `url` nor `name` are set then all cookies are observed. If only `url` is set
+    /// then all cookies for that URL are observed. If both are set then only cookies matching both
+    /// fields are observed.
+    ///
+    /// `changes` iterates over a stream of cookie changes. Additions or updates are expressed as
+    /// complete cookies, while deletions are expressed as cookies with no `value` set.
+    ObserveCookieChanges(
+        Url? url,
+        CookieName? name,
+        request<CookiesIterator> changes);
+
+    /// Returns a list of Cookies, optionally limited to those matching `url`, and optionally
+    /// `name`. `cookies` iterates over the matching cookies, including their `value`s.
+    GetCookieList(Url? url,
+                  CookieName? name,
+                  request<CookiesIterator> cookies);
+};
+
+/// Used to iterator over a set of cookies, or a stream of changes to cookies.
+protocol CookiesIterator {
+    /// Fetches the next batch of cookies, or of changes to cookies.
+    GetNext() -> (vector<Cookie> changed_cookies);
+};
+
+table CookieId {
+    /// The name of the cookie. An arbitrary string defined by the website.
+    1: CookieName name;
+
+    /// Specifies the host that is allowed to receive the cookie.
+    2: string domain;
+
+    /// Specifies the URL path prefix which is required to receive the cookie.
+    3: string path;
+};
+
+table Cookie {
+    /// A table with fields to identify a cookie.
+    1: CookieId id;
+
+    /// The cookie value.
+    2: string value;
+};

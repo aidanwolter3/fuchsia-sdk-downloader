@@ -1,0 +1,106 @@
+// Copyright 2019 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.feedback;
+
+using fuchsia.mem;
+using zx;
+
+/// Provides the ability to file crash reports.
+[Discoverable]
+protocol CrashReporter {
+    /// Files a crash `report`.
+    ///
+    /// This could mean generating a crash report in a local crash report database or uploading the
+    /// crash report to a remote crash server depending on the FIDL server's configuration.
+    File(CrashReport report) -> () error zx.status;
+};
+
+const uint32 MAX_PROGRAM_NAME_LENGTH = 1024;
+const uint32 MAX_NUM_ANNOTATIONS_PER_CRASH_REPORT = 32;
+const uint32 MAX_NUM_ATTACHMENTS_PER_CRASH_REPORT = 16;
+const uint32 MAX_EVENT_ID_LENGTH = 128;
+
+/// Represents a crash report.
+table CrashReport {
+    /// The name of the program that crashed, e.g., the process or component's name.
+    1: string:MAX_PROGRAM_NAME_LENGTH program_name;
+
+    /// How long the program was running before it crashed.
+    6: zx.duration program_uptime;
+
+    /// The specific report that depends on the type of crashes.
+    2: SpecificCrashReport specific_report;
+
+    /// A vector of key-value string pairs representing arbitrary data that should be attached to a
+    /// crash report.
+    ///
+    /// Keys should be unique as only the latest value for a given key in the vector will be
+    /// considered.
+    3: vector<Annotation>:MAX_NUM_ANNOTATIONS_PER_CRASH_REPORT annotations;
+
+    /// A vector of key-value string-to-VMO pairs representing arbitrary data that should be
+    /// attached to a crash report.
+    ///
+    /// Keys should be unique as only the latest value for a given key in the vector will be
+    /// considered.
+    4: vector<Attachment>:MAX_NUM_ATTACHMENTS_PER_CRASH_REPORT attachments;
+
+    /// A text ID that the crash server can use to group multiple crash reports related to the
+    /// same event.
+    ///
+    /// Unlike the crash signature, crash reports sharing the same ID correspond to different
+    /// crashes, but can be considered as belonging to the same event, e.g., a crash in a low-level
+    /// server causing a crash in a high-level UI widget.
+    5: string:MAX_EVENT_ID_LENGTH event_id;
+};
+
+/// Represents a specific crash report.
+///
+/// Add a new member when the server needs to special case how it handles certain annotations and
+/// attachments for a given type of crashes, e.g., a `RuntimeCrashReport` for Javascript.
+flexible union SpecificCrashReport {
+    /// Intended for arbitrary crashes, e.g., OOM, out-of-disk.
+    1: GenericCrashReport generic;
+
+    /// Intended for a native exception.
+    2: NativeCrashReport native;
+
+    /// Intended for a Dart exception.
+    3: RuntimeCrashReport dart;
+};
+
+const uint32 MAX_CRASH_SIGNATURE_LENGTH = 128;
+
+/// Represents a generic crash report.
+table GenericCrashReport {
+    /// A text signature that the crash server can use to track the same crash over time, e.g.,
+    /// "kernel-panic" or "oom".
+    ///
+    /// Unlike the event ID, crash reports sharing the same signature correspond to the same crash,
+    /// but happening over multiple events, e.g., a null pointer exception in a server whenever
+    /// asked the same request.
+    1: string:MAX_CRASH_SIGNATURE_LENGTH crash_signature;
+};
+
+/// Represents a crash report for a native exception out of which the client has built a minidump.
+table NativeCrashReport {
+    /// The core dump in the Minidump format.
+    1: fuchsia.mem.Buffer minidump;
+};
+
+const uint32 MAX_EXCEPTION_TYPE_LENGTH = 128;
+const uint32 MAX_EXCEPTION_MESSAGE_LENGTH = 2048;
+
+/// Represents a crash report for a runtime exception, applicable to most languages.
+table RuntimeCrashReport {
+    /// The exception type, e.g., "FileSystemException".
+    1: string:MAX_EXCEPTION_TYPE_LENGTH exception_type;
+
+    /// The exception message, e.g., "cannot open file".
+    2: string:MAX_EXCEPTION_MESSAGE_LENGTH exception_message;
+
+    /// The text representation of the exception stack trace.
+    3: fuchsia.mem.Buffer exception_stack_trace;
+};

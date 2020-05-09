@@ -1,0 +1,61 @@
+// Copyright 2020 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.legacymetrics;
+
+using zx;
+
+/// A single metric event to be recorded and sent to the UMA backend.
+union Event {
+    1: UserActionEvent user_action_event;
+    2: Histogram histogram;
+    3: ImplementationDefinedEvent impl_defined_event;
+};
+
+/// Event that occurs in response to a user action. See
+/// https://chromium.googlesource.com/chromium/src.git/+/HEAD/tools/metrics/actions/README.md
+table UserActionEvent {
+    1: string:MAX name;
+
+    /// Required timestamp of the event occurrence. See TimeTicks in
+    /// https://cs.chromium.org/chromium/src/base/time/time.h
+    2: zx.time time;
+};
+
+table Histogram {
+    /// Required histogram identifier. See these guidelines for more info:
+    /// https://chromium.googlesource.com/chromium/src.git/+/HEAD/tools/metrics/histograms/README.md#naming-your-histogram
+    1: string:MAX name;
+
+    2: vector<HistogramBucket>:MAX buckets;
+
+    // The sum of all the sample values.
+    // Together with the total count of the sample values, this allows us to
+    // compute the average value.  The count of all sample values is just the sum
+    // of the counts of all the buckets.
+    3: int64 sum;
+};
+
+struct HistogramBucket {
+    // Each bucket's range is bounded by min <= x < max.
+    int64 min;
+    int64 max;
+
+    // The number of entries in this bucket.
+    int64 count;
+};
+
+/// A custom event defined by the MetricsRecorder service. Refer to your
+/// MetricsRecorder implementation for more details on the payload structure.
+table ImplementationDefinedEvent {
+    /// Custom binary payload whose structure is defined by the MetricsRecorder
+    /// implementation. For example, it can represent a custom event protocol
+    /// buffer serialized to its wire format.
+    1: bytes data;
+
+    /// Event identifier required if it's not already included in binary `data`.
+    /// This field takes precedence over any equivalent name included in binary
+    /// `data`, if both are provided.
+    2: string:MAX name;
+};

@@ -1,0 +1,119 @@
+// Copyright 2019 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.accessibility.semantics;
+
+using fuchsia.ui.gfx;
+
+/// Represents actions that can be applied to Nodes.
+enum Action {
+    /// The default action associated with the element.
+    DEFAULT = 1;
+    /// The secondary action associated with the element. This may correspond to a long press
+    /// (touchscreens) or right click (mouse).
+    SECONDARY = 2;
+    /// Set (input/non-accessibility) focus on this element.
+    SET_FOCUS = 3;
+    /// Set the element's value.
+    SET_VALUE = 4;
+    /// Scroll node to make it visible.
+    SHOW_ON_SCREEN = 5;
+};
+
+/// Represents a role of an element on a UI.
+enum Role {
+    /// Role used to represent elements which role is not currently supported.
+    UNKNOWN = 1;
+    /// Something on screen that can be clicked/activated, that has a single function.
+    BUTTON = 2;
+    /// Header text, e.g. something tagged <h1> in HTML.
+    HEADER = 3;
+    /// An image or graphic.
+    IMAGE = 4;
+    /// A field containing text that is not a header.
+    TEXT_FIELD = 5;
+};
+
+/// An attribute is an essential property to describe an element. Unlike states, attributes do not
+/// change over the life of an element.
+/// Example: A button with a label attribute 'ok' should never change to 'cancel', as this is not
+/// the same element.
+table Attributes {
+    /// The primary label for an element. If longer than MAX_LABEL_SIZE the client is responsible
+    /// for truncating the label.
+    1: string:MAX_LABEL_SIZE label;
+
+    /// The secondary label for an element. If longer than MAX_LABEL_SIZE the client is responsible
+    /// for truncating the label.
+    2: string:MAX_LABEL_SIZE secondary_label;
+
+    /// A description of what the secondary action on a node (equivalent to long press or right click) should do.
+    3: string:MAX_LABEL_SIZE secondary_action_description;
+};
+
+/// Represents the state of a UI checkbox.
+enum CheckedState {
+    /// Used when no data is entered or the element is not a check box.
+    NONE = 1;
+    /// Checked
+    CHECKED = 2;
+    /// Unchecked
+    UNCHECKED = 3;
+    /// Indeterminate state
+    MIXED = 4;
+};
+
+/// A state is a dynamic property of an element that may change in response to
+/// user action or automated processes. Thus, they are different from attributes
+/// in an important point, which is frequency of change.
+table States {
+    /// DEPRECATED
+    1: bool checked;
+
+    /// State of a checkbox.
+    2: CheckedState checked_state;
+
+    /// Whether the element is currently selected.
+    3: bool selected;
+
+    /// Whether the element is currently hidden or marked invisible by the framework.
+    4: bool hidden;
+
+    /// The user-entered value of the element, if applicable. If longer than MAX_VALUE_SIZE the
+    /// client is responsible for truncating.
+    5: string:MAX_VALUE_SIZE value;
+};
+
+/// The Node represents a semantic element on an interface. This may
+/// be a button, a text field, a checkbox or any element that has a relevant
+/// semantic meaning so that assistive technology can understand the current UI.
+table Node {
+    /// Unique ID that represents a node in a particular UI.
+    /// Zero is assumed to be the root node and the only entry point to the tree.
+    /// No forest is allowed.
+    1: uint32 node_id;
+
+    /// Role of this element, e.g. button, checkbox, etc.
+    2: Role role;
+
+    /// A table of states of this object, e.g. checked, editable, etc.
+    3: States states;
+
+    /// A table of attributes of this node.
+    4: Attributes attributes;
+
+    /// A list of actions that can be performed on this node.
+    5: vector<Action>:100 actions;
+
+    /// The list of child IDs of this node, in traversal order. Runtimes supplying semantic tree
+    /// information are responsible for ensuring the tree does not contain cycles. Each node may
+    /// have only one parent.
+    6: vector<uint32>:MAX_FAN_OUT child_ids;
+
+    /// Local bounding box of this element.
+    7: fuchsia.ui.gfx.BoundingBox location;
+
+    /// Transform from parent coordinate space to local space. 4x4 for compatibility with scenic.
+    8: fuchsia.ui.gfx.mat4 transform;
+};

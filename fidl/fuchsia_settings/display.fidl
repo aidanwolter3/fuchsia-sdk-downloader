@@ -1,0 +1,67 @@
+// Copyright 2019 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.settings;
+
+using fuchsia.ui.types;
+
+/// Settings related to display.
+///
+/// Supported SettingsEpitaph enums:
+/// REQUEST_NOT_SUPPORTED, INTERNAL_SERVICE_ERROR, PERSISTENT_STORAGE_ERROR
+[Discoverable]
+protocol Display {
+    /// TO BE DEPRECATED: new watches will use Watch2 in the future.
+    [Transitional = "To be deprecated in favor of Watch2"]
+    Watch() -> (DisplaySettings settings) error Error;
+
+    /// Gets the current [DisplaySettings]. Returns immediately on first call;
+    /// subsequent calls return when the value changes.
+    ///
+    /// If this call fails, it is considered a fatal error and the channel
+    /// will be closed.
+    [Transitional = "Future Replacement for Watch"]
+    Watch2() -> (DisplaySettings settings);
+
+    /// DEPRECATED: new watches should use WatchLightSensor2.
+    [Transitional = "Deprecated in favor of WatchLightSensor2"]
+    WatchLightSensor(float32 delta) -> (LightSensorData light_sensor_data) error Error;
+
+    /// Obtains the current data from the light sensor. Returns immediately on
+    /// first call; subsequent calls return when the light sensor value changes
+    ///  by a certain amount measured in lux.
+    ///
+    /// If this call fails, it is considered a fatal error and the channel
+    /// will be closed.
+    [Transitional = "Replacement for WatchLightSensor"]
+    WatchLightSensor2(float32 delta) -> (LightSensorData light_sensor_data);
+
+    /// Sets display settings. Any field not explicitly set in the table performs a
+    /// no-op, and will not make any changes.
+    Set(DisplaySettings settings) -> () error Error;
+};
+
+/// DisplaySettings are used to determine the output state of the display.
+/// The display can be toggled between two modes, auto-brightness on and
+/// auto-brightness off. When auto-brightness is on a manual offset to the
+/// total output brightness can be applied by setting `user_brightness_offset`.
+/// When auto-brightness is off the display brightness is set manually by
+/// setting brightness_value. All values can be set at any time to persist
+/// settings for either mode.
+table DisplaySettings {
+    /// Auto brightness enabled
+    1: bool auto_brightness;
+    /// Manually set brightness value [0.0 - 1.0]
+    2: float32 brightness_value;
+    /// User defined offset to the total auto brightness output [-1.0 - 1.0]
+    3: float32 user_brightness_offset;
+};
+
+table LightSensorData {
+    /// Brightness from the light sensor measured in lux.
+    1: float32 illuminance_lux;
+
+    /// Color measured by light sensor in rgb.
+    2: fuchsia.ui.types.ColorRgb color;
+};

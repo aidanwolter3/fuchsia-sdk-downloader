@@ -1,0 +1,128 @@
+// Copyright 2019 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.web;
+
+using fuchsia.net.http;
+
+/// Interface supplied by the embedder for receiving notifications about navigation events in a
+/// [`fuchsia.web.Frame`].
+protocol NavigationEventListener {
+    /// Called when user-visible navigation state has changed since [`fuchsia.web.Frame`] creation
+    /// or the last acknowledgement callback, whichever occurred last. `change` will contain all
+    /// the differences in navigation state since the last acknowledgement. Any unchanged
+    /// properties will be left unset in `change`.
+    ///
+    /// Implementer must call the acknowledgement callback to receive new navigation events.
+    OnNavigationStateChanged(NavigationState change) -> ();
+};
+
+/// Represents the return status of a [`fuchsia.web.NavigationController`] method.
+enum NavigationControllerError : int32 {
+    /// The provided URL is invalid.
+    INVALID_URL = 1;
+
+    /// At least one of the provided headers was invalid.
+    INVALID_HEADER = 2;
+};
+
+/// Provides methods for controlling and querying the navigation state of a [`fuchsia.web.Frame`].
+protocol NavigationController {
+    /// Tells the [`fuchsia.web.Frame`] to navigate to a `url`.
+    ///
+    /// - `url`:    The address to navigate to.
+    /// - `params`: Additional parameters that affect how the resource will be
+    ///   loaded (e.g. cookies, HTTP headers, etc.)
+    ///
+    /// If an error occured, the [`fuchsia.web.NavigationControllerError`] will be set to one of
+    /// these values:
+    /// - `INVALID_URL`: The `url` parameter is invalid.
+    /// - `INVALID_HEADER`: At least one of the headers in [`fuchsia.web.LoadUrlParams/headers`]
+    ///   is invalid.
+    LoadUrl(Url url, LoadUrlParams params)
+        -> () error NavigationControllerError;
+
+    /// Tells the [`fuchsia.web.Frame`] to navigate to the previous page in its history, if any.
+    GoBack();
+
+    /// Tells the [`fuchsia.web.Frame`] to navigate to the next page in its history, if any.
+    GoForward();
+
+    /// Tells the [`fuchsia.web.Frame`] to stop the current navigation if a navigation is ongoing.
+    Stop();
+
+    /// Tells the [`fuchsia.web.Frame`] to reload the current page.
+    Reload(ReloadType type);
+
+    /// Returns information for the currently visible content regardless of loading state, or an
+    /// empty entry if no content is being displayed.
+    GetVisibleEntry() -> (NavigationState entry);
+};
+
+/// Additional parameters for modifying the behavior of
+/// [`fuchsia.web.NavigationController/LoadUrl`].
+table LoadUrlParams {
+    /// Provides a hint to the browser UI about how [`fuchsia.web.NavigationController/LoadUrl`]
+    /// was triggered.
+    1: LoadUrlReason type;
+
+    /// The URL that linked to the resource being requested.
+    2: Url referrer_url;
+
+    /// Should be set to true to propagate user activation to the frame. User activation implies
+    /// that the user is interacting with the web frame. It enables some web features that are not
+    /// available otherwise. For example, autoplay will work only when this flag is set to true.
+    3: bool was_user_activated;
+
+    /// Custom HTTP headers.
+    4: vector<fuchsia.net.http.Header> headers;
+};
+
+/// Contains information about the [`fuchsia.web.Frame`]'s navigation state.
+table NavigationState {
+    /// The page's URL.
+    1: Url url;
+
+    /// The user-visible page title.
+    2: string title;
+
+    /// Indicates whether this was a navigation to an error page.
+    3: PageType page_type;
+
+    /// Indicates if there is a following navigation.
+    4: bool can_go_forward;
+
+    /// Indicates if there is a previous navigation.
+    5: bool can_go_back;
+
+    /// Indicates that the main document's statically declared resources have been loaded.
+    6: bool is_main_document_loaded;
+};
+
+/// Characterizes the type of reload.
+enum ReloadType : uint32 {
+    /// Reloads the current entry, bypassing the cache for the main resource.
+    PARTIAL_CACHE = 0;
+
+    /// Reloads the current entry, bypassing the cache entirely.
+    NO_CACHE = 1;
+};
+
+/// Characterizes the origin of a [`fuchsia.web.NavigationController/LoadUrl`] request.
+enum LoadUrlReason : uint32 {
+    /// Navigation was initiated by the user following a link.
+    LINK = 0;
+
+    /// Navigation was initiated by a user-provided URL.
+    TYPED = 1;
+};
+
+/// Characterizes the page type in a [`fuchsia.web.NavigationState`].
+enum PageType {
+    /// Regular web page.
+    NORMAL = 0;
+
+    /// Error page.
+    ERROR = 1;
+};

@@ -1,0 +1,15 @@
+// Copyright 2020 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.legacymetrics;
+
+/// Accepts metrics events and uploads them to UMA servers for analysis. Metrics
+/// events are batched and uploaded at a regular interval. For similar behavior,
+/// see Chromium's MetricsService:
+/// https://chromium.googlesource.com/chromium/src.git/+/refs/heads/master/components/metrics/metrics_service.cc
+[Discoverable]
+protocol MetricsRecorder {
+    /// Processes and enqueues a batch of events for upload.
+    Record(vector<Event>:MAX events) -> ();
+};
