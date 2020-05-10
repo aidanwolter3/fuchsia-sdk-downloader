@@ -56,10 +56,10 @@ def _configure_crosstool_impl(repository_ctx):
     # https://github.com/bazelbuild/bazel/issues/3901
     sysroot_x64 = repository_ctx.path(
         Label("@fuchsia_sdk//arch/x64/sysroot:BUILD")).dirname
-    # Set up the CROSSTOOL file from the template.
+    # Set up the toolchain config file from the template.
     repository_ctx.template(
-        "CROSSTOOL",
-        Label("@fuchsia_sdk//build_defs/internal/crosstool:CROSSTOOL.in"),
+        "cc_toolchain_config.bzl",
+        Label("@fuchsia_sdk//build_defs/internal/crosstool:cc_toolchain_config.bzl.in"),
         substitutions = {
             "%{SYSROOT_X64}": str(sysroot_x64),
             "%{CROSSTOOL_ROOT}": str(repository_ctx.path("."))
