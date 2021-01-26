@@ -37,6 +37,7 @@ fidl_library(
         "//fidl/fuchsia_images",
         "//fidl/fuchsia_media_audio",
         "//fidl/fuchsia_sysmem",
+        "//fidl/zx",
     ],
 )
 
@@ -45,13 +46,14 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_media_cc",
     library = ":fuchsia_media",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
         "//fidl/fuchsia_hardware_audio:fuchsia_hardware_audio_cc",
         "//fidl/fuchsia_images:fuchsia_images_cc",
         "//fidl/fuchsia_media_audio:fuchsia_media_audio_cc",
         "//fidl/fuchsia_sysmem:fuchsia_sysmem_cc",
+        "//fidl/zx:zx_cc",
     ],
 )
 

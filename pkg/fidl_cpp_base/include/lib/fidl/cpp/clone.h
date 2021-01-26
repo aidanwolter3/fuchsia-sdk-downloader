@@ -13,6 +13,7 @@
 #include "lib/fidl/cpp/string.h"
 #include "lib/fidl/cpp/traits.h"
 #include "lib/fidl/cpp/vector.h"
+#include "types.h"
 
 namespace fidl {
 
@@ -160,6 +161,37 @@ Clone(const std::array<T, N>& value, std::array<T, N>* result) {
   }
   return ZX_OK;
 }
+
+inline zx_status_t Clone(const UnknownBytes& value, UnknownBytes* result) {
+  result->bytes = value.bytes;
+  return ZX_OK;
+}
+
+inline zx_status_t Clone(const ::std::map<uint64_t, ::std::vector<uint8_t>>& value,
+                         ::std::map<uint64_t, ::std::vector<uint8_t>>* result) {
+  *result = value;
+  return ZX_OK;
+}
+
+#ifdef __Fuchsia__
+inline zx_status_t Clone(const UnknownData& value, UnknownData* result) {
+  result->bytes = value.bytes;
+  return Clone(value.handles, &(result->handles));
+}
+
+inline zx_status_t Clone(const ::std::map<uint64_t, UnknownData>& value,
+                         ::std::map<uint64_t, UnknownData>* result) {
+  result->clear();
+  for (const auto& pair : value) {
+    auto field = result->emplace(std::piecewise_construct, std::forward_as_tuple(pair.first),
+                                     std::forward_as_tuple());
+    zx_status_t status = Clone(pair.second, &field.first->second);
+    if (status != ZX_OK)
+      return status;
+  }
+  return ZX_OK;
+}
+#endif
 
 // Returns a deep copy of |value|.
 // This operation also attempts to duplicate any handles the value contains.

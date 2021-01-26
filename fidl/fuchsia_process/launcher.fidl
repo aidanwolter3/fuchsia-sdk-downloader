@@ -15,7 +15,7 @@ using zx;
 ///
 /// This structure represents one such handle and its associated zx.procarg
 /// identifier.
-struct HandleInfo {
+resource struct HandleInfo {
     /// The handle to use for this process argument.
     handle handle;
 
@@ -33,7 +33,7 @@ struct HandleInfo {
 /// their intended use by the new process as namespace entries.
 ///
 /// This structure represents one such handle and its associated namespace path.
-struct NameInfo {
+resource struct NameInfo {
     /// Path at which to install the associated directory.
     ///
     /// Must be an absolute path (i.e., start with '/').
@@ -44,12 +44,12 @@ struct NameInfo {
 };
 
 /// The information needed to launch a process.
-struct LaunchInfo {
+resource struct LaunchInfo {
     /// The executable to run in the process.
-    handle<vmo> executable;
+    zx.handle:VMO executable;
 
     /// The job in which to create the process.
-    handle<job> job;
+    zx.handle:JOB job;
 
     /// The name to assign to the created process.
     string:zx.MAX_NAME_LEN name;
@@ -58,19 +58,19 @@ struct LaunchInfo {
 /// The information required to start a process.
 ///
 /// To start the process, call `zx_process_start` with the arguments provided.
-struct ProcessStartData {
+resource struct ProcessStartData {
     /// The process that was created.
-    handle<process> process;
+    zx.handle:PROCESS process;
 
     /// The vmar object that was created when the process was created.
     ///
     /// See <https://fuchsia.dev/fuchsia-src/reference/syscalls/process_create.md>.
-    handle<vmar> root_vmar;
+    zx.handle:VMAR root_vmar;
 
     /// The initial thread for the process.
     ///
     /// Should be passed to `zx_process_start` when starting the process.
-    handle<thread> thread;
+    zx.handle:THREAD thread;
 
     /// The address of the initial entry point in the process.
     ///
@@ -85,7 +85,7 @@ struct ProcessStartData {
     /// The bootstrap channel to pass to the process on startup.
     ///
     /// Should be passed to `zx_process_start` when starting the process.
-    handle<channel> bootstrap;
+    zx.handle:CHANNEL bootstrap;
 
     /// The base address of the vDSO to pass to the process on startup.
     ///
@@ -98,7 +98,7 @@ struct ProcessStartData {
     zx.vaddr base;
 };
 
-// TODO(fxb/37281): replace with built-in constant
+// TODO(fxbug.dev/37281): replace with built-in constant
 const uint32 MAX = 0xFFFFFFFF;
 
 /// A low-level interface for launching processes.
@@ -122,7 +122,7 @@ protocol Launcher {
     /// state and is ready to launch another process.
     ///
     /// `process` is present if, and only if, `status` is `ZX_OK`.
-    Launch(LaunchInfo info) -> (zx.status status, handle<process>? process);
+    Launch(LaunchInfo info) -> (zx.status status, zx.handle:PROCESS? process);
 
     /// Creates the process described by `info` but does not start it.
     ///

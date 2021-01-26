@@ -12,21 +12,21 @@ using fuchsia.ui.types;
 /// REQUEST_NOT_SUPPORTED, INTERNAL_SERVICE_ERROR, PERSISTENT_STORAGE_ERROR
 [Discoverable]
 protocol Display {
-    /// TO BE DEPRECATED: new watches will use Watch2 in the future.
-    [Transitional = "To be deprecated in favor of Watch2"]
-    Watch() -> (DisplaySettings settings) error Error;
+    /// Gets the current [DisplaySettings]. Returns immediately on first call;
+    /// subsequent calls return when the value changes.
+    ///
+    /// If this call fails, it is considered a fatal error and the channel
+    /// will be closed.
+    [Transitional = "Deprecated in favor of Watch"]
+    Watch2() -> (DisplaySettings settings);
 
     /// Gets the current [DisplaySettings]. Returns immediately on first call;
     /// subsequent calls return when the value changes.
     ///
     /// If this call fails, it is considered a fatal error and the channel
     /// will be closed.
-    [Transitional = "Future Replacement for Watch"]
-    Watch2() -> (DisplaySettings settings);
-
-    /// DEPRECATED: new watches should use WatchLightSensor2.
-    [Transitional = "Deprecated in favor of WatchLightSensor2"]
-    WatchLightSensor(float32 delta) -> (LightSensorData light_sensor_data) error Error;
+    [Transitional = "Future replacement for Watch2"]
+    Watch() -> (DisplaySettings settings);
 
     /// Obtains the current data from the light sensor. Returns immediately on
     /// first call; subsequent calls return when the light sensor value changes
@@ -34,8 +34,17 @@ protocol Display {
     ///
     /// If this call fails, it is considered a fatal error and the channel
     /// will be closed.
-    [Transitional = "Replacement for WatchLightSensor"]
+    [Transitional = "Deprecated in favor of WatchLightSensor"]
     WatchLightSensor2(float32 delta) -> (LightSensorData light_sensor_data);
+
+    /// Obtains the current data from the light sensor. Returns immediately on
+    /// first call; subsequent calls return when the light sensor value changes
+    ///  by a certain amount measured in lux.
+    ///
+    /// If this call fails, it is considered a fatal error and the channel
+    /// will be closed.
+    [Transitional = "Future replacement for WatchLightSensor2"]
+    WatchLightSensor(float32 delta) -> (LightSensorData light_sensor_data);
 
     /// Sets display settings. Any field not explicitly set in the table performs a
     /// no-op, and will not make any changes.
@@ -56,6 +65,12 @@ table DisplaySettings {
     2: float32 brightness_value;
     /// User defined offset to the total auto brightness output [-1.0 - 1.0]
     3: float32 user_brightness_offset;
+    /// The low light mode state of the device.
+    4: LowLightMode low_light_mode;
+    /// Whether the screen is enabled.
+    5: bool screen_enabled;
+    /// Theme to be used for the device's user interface.
+    6: Theme theme;
 };
 
 table LightSensorData {
@@ -64,4 +79,47 @@ table LightSensorData {
 
     /// Color measured by light sensor in rgb.
     2: fuchsia.ui.types.ColorRgb color;
+};
+
+table Theme {
+    // theme_type will be absent if no theme has been set.
+    1: ThemeType theme_type;
+    // Lack of a theme mode can be represented by an absent theme_mode or a
+    // theme_mode of 0x0.
+    2: ThemeMode theme_mode;
+};
+
+enum LowLightMode {
+    /// Device should not be in low-light mode.
+    DISABLE = 0;
+    /// Device should not be in low-light mode and should transition
+    /// out of it immediately.
+    DISABLE_IMMEDIATELY = 1;
+    /// Device should be in low-light mode.
+    ENABLE = 2;
+};
+
+// Specifies a specific theme that should be used by the UI.
+// Any other theme information, such as guidance as to how to pick a theme,
+// should be communicated using `ThemeMode`.
+enum ThemeType {
+    DEFAULT = 0;
+    LIGHT = 1;
+    DARK = 2;
+
+    /// Product can choose a theme based on ambient cues.
+    // DEPRECATED: AUTO should be indicated using the AUTO value in
+    // ThemeMode.
+    //
+    // TODO(https://bugs.fuchsia.dev/p/fuchsia/issues/detail?id=64775):
+    // Remove AUTO.
+    AUTO = 3;
+};
+
+// Specifies options that pertain to selection or display of a theme in the
+// UI. If a specific theme needs to be specified, that should be done using
+// `ThemeType`.
+bits ThemeMode {
+    /// Product can choose a theme based on ambient cues.
+    AUTO = 0x01;
 };

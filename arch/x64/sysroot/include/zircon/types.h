@@ -179,6 +179,7 @@ typedef struct zx_wait_item {
 
 // VM Object opcodes
 #define ZX_VMO_OP_COMMIT                 ((uint32_t)1u)
+// Keep value in sync with ZX_VMAR_OP_DECOMMIT.
 #define ZX_VMO_OP_DECOMMIT               ((uint32_t)2u)
 #define ZX_VMO_OP_LOCK                   ((uint32_t)3u)
 #define ZX_VMO_OP_UNLOCK                 ((uint32_t)4u)
@@ -188,6 +189,14 @@ typedef struct zx_wait_item {
 #define ZX_VMO_OP_CACHE_CLEAN            ((uint32_t)8u)
 #define ZX_VMO_OP_CACHE_CLEAN_INVALIDATE ((uint32_t)9u)
 #define ZX_VMO_OP_ZERO                   ((uint32_t)10u)
+
+// VMAR opcodes
+// Keep value in sync with ZX_VMO_OP_DECOMMIT.
+#define ZX_VMAR_OP_DECOMMIT              ((uint32_t)2u)
+#define ZX_VMAR_OP_MAP_RANGE             ((uint32_t)3u)
+
+// Pager opcodes
+#define ZX_PAGER_OP_FAIL                 ((uint32_t)1u)
 
 // VM Object clone flags
 #define ZX_VMO_CHILD_SNAPSHOT             ((uint32_t)1u << 0)
@@ -215,6 +224,7 @@ typedef uint32_t zx_vm_option_t;
 #define ZX_VM_MAP_RANGE             ((zx_vm_option_t)(1u << 10))
 #define ZX_VM_REQUIRE_NON_RESIZABLE ((zx_vm_option_t)(1u << 11))
 #define ZX_VM_ALLOW_FAULTS          ((zx_vm_option_t)(1u << 12))
+#define ZX_VM_OFFSET_IS_UPPER_LIMIT ((zx_vm_option_t)(1u << 13))
 
 #define ZX_VM_ALIGN_BASE            24
 #define ZX_VM_ALIGN_1KB             ((zx_vm_option_t)(10u << ZX_VM_ALIGN_BASE))
@@ -289,16 +299,21 @@ typedef struct zx_iovec {
 // interrupt wait slots must be in the range 0 - 62 inclusive
 #define ZX_INTERRUPT_MAX_SLOTS              ((uint32_t)62u)
 
+// msi_create flags
+#define ZX_MSI_MODE_MSI_X                   ((uint32_t)0x1u)
+
 // PCI interrupt handles use interrupt slot 0 for the PCI hardware interrupt
 #define ZX_PCI_INTERRUPT_SLOT               ((uint32_t)0u)
 
 // Channel options and limits.
 #define ZX_CHANNEL_READ_MAY_DISCARD         ((uint32_t)1u)
+#define ZX_CHANNEL_WRITE_USE_IOVEC          ((uint32_t)2u)
 
 // TODO(fxbug.dev/7802): This must be manually kept in sync with zx_common.fidl.
 // Eventually (some of) this file will be generated from //zircon/vdso.
 #define ZX_CHANNEL_MAX_MSG_BYTES            ((uint32_t)65536u)
 #define ZX_CHANNEL_MAX_MSG_HANDLES          ((uint32_t)64u)
+#define ZX_CHANNEL_MAX_MSG_IOVECS           ((uint32_t)8192u)
 
 // Fifo limits.
 #define ZX_FIFO_MAX_SIZE_BYTES              ZX_PAGE_SIZE
@@ -438,6 +453,23 @@ typedef struct zx_channel_call_args {
     uint32_t rd_num_bytes;
     uint32_t rd_num_handles;
 } zx_channel_call_args_t;
+
+typedef struct zx_channel_call_etc_args {
+    const void* wr_bytes;
+    zx_handle_disposition_t* wr_handles;
+    void *rd_bytes;
+    zx_handle_info_t* rd_handles;
+    uint32_t wr_num_bytes;
+    uint32_t wr_num_handles;
+    uint32_t rd_num_bytes;
+    uint32_t rd_num_handles;
+} zx_channel_call_etc_args_t;
+
+typedef struct zx_channel_iovec {
+  const void* buffer;
+  uint32_t capacity;
+  uint32_t reserved;
+} zx_channel_iovec_t;
 
 // The ZX_VM_FLAG_* constants are to be deprecated in favor of the ZX_VM_*
 // versions.

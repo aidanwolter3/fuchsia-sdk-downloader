@@ -5,9 +5,10 @@
 library fuchsia.ui.gfx;
 
 using fuchsia.mem;
+using zx;
 
 /// Commands that are used to modify the state of a `Session`.
-union Command {
+resource union Command {
     1: CreateResourceCmd create_resource;
     2: ReleaseResourceCmd release_resource;
     3: ExportResourceCmdDeprecated export_resource;
@@ -76,10 +77,10 @@ union Command {
     /// Debugging commands.
     44: SetDisableClippingCmd set_disable_clipping;
 
-    // TODO(SCN-1026): Remove this.
+    // TODO(fxbug.dev/24238): Remove this.
     45: SetImportFocusCmdDEPRECATED set_import_focus;
 
-    // TODO(SCN-1225): Move these where they belong.  They're added to the end of
+    // TODO(fxbug.dev/24428): Move these where they belong.  They're added to the end of
     // the struct temporarily until we transition to xunions.
     46: SetClipPlanesCmd set_clip_planes;
     47: SetPointLightPositionCmd set_point_light_position;
@@ -96,11 +97,15 @@ union Command {
     55: SetViewHolderBoundsColorCmd set_view_holder_bounds_color;
 
     56: SetCameraClipSpaceTransformCmd set_camera_clip_space_transform;
+
+    57: SetDisplayMinimumRgbCmdHACK set_display_minimum_rgb;
+
+    58: SetSemanticVisibilityCmd set_semantic_visibility;
 };
 
 /// Instructs the compositor to create the specified `Resource`, and to register
 /// it in a table so that it can be referenced by subsequent commands.
-struct CreateResourceCmd {
+resource struct CreateResourceCmd {
     /// An ID that is currently not used within the session.
     uint32 id;
     ResourceArgs resource;
@@ -126,9 +131,9 @@ struct ReleaseResourceCmd {
 /// No specific mechanism is provided for transferring a token from an exporter
 /// to an importer; collaborators may choose any out-of-band API they wish to do
 /// so.
-struct ExportResourceCmdDeprecated {
+resource struct ExportResourceCmdDeprecated {
     uint32 id;
-    handle<eventpair> token;
+    zx.handle:EVENTPAIR token;
 };
 
 /// Import a resource that was exported via ExportResourceCmd().  `token` is
@@ -153,9 +158,9 @@ struct ExportResourceCmdDeprecated {
 // TODO: describe how the imported resource behaves if the exported resource
 // isn't yet available, or becomes unavailable (e.g. an imported Material might
 // act as a plain white texture).
-struct ImportResourceCmdDeprecated {
+resource struct ImportResourceCmdDeprecated {
     uint32 id;
-    handle<eventpair> token;
+    zx.handle:EVENTPAIR token;
     ImportSpec spec;
 };
 
@@ -374,6 +379,16 @@ struct SetHitTestBehaviorCmd {
     HitTestBehavior hit_test_behavior;
 };
 
+/// Sets a node's semantic visibility.
+///
+/// Discussion:
+/// By default, all nodes are semantically visible. Semantically invisible nodes and their children
+/// are ignored by hit tests performed for accessibility.
+struct SetSemanticVisibilityCmd {
+    uint32 node_id;
+    bool visible = true;
+};
+
 /// Sets the properties for a ViewHolder's attached View.
 ///
 /// Constraints:
@@ -387,7 +402,7 @@ protocol SnapshotCallbackDEPRECATED {
     OnData(fuchsia.mem.Buffer data);
 };
 
-struct TakeSnapshotCmdDEPRECATED {
+resource struct TakeSnapshotCmdDEPRECATED {
     uint32 node_id;
     SnapshotCallbackDEPRECATED callback;
 };
@@ -619,7 +634,7 @@ struct SetColorCmd {
 ///   - the 3D position occupies bytes 0-11 (3 dimensions * 4 bytes per float32).
 ///   - the UV coords occupy bytes 12-19, since no surface normal is provided.
 enum MeshIndexFormat {
-    // TODO(SCN-275): only kUint32 is currently supported.
+    // TODO(fxbug.dev/23519): only kUint32 is currently supported.
     kUint16 = 1;
     kUint32 = 2;
 };
@@ -747,7 +762,7 @@ struct SetDisableClippingCmd {
     bool disable_clipping;
 };
 
-// TODO(SCN-1026): Remove this.
+// TODO(fxbug.dev/24238): Remove this.
 struct SetImportFocusCmdDEPRECATED {
 };
 
@@ -773,7 +788,7 @@ struct SetPointLightPositionCmd {
 /// value of 0.0 means that the radiance of a surface is not dependant on
 /// its distance from the light.
 ///
-// TODO(SCN-528): need to formalize the units of light intensity and distance used
+// TODO(fxbug.dev/23755): need to formalize the units of light intensity and distance used
 // to compute fall-off.  Currently the unit is pips; consequently a falloff of 1.0
 // causes light to attenuate far too rapidly.  Meters would be more appropriate.
 struct SetPointLightFalloffCmd {
@@ -852,4 +867,10 @@ struct SetEnableDebugViewBoundsCmd {
 struct SetViewHolderBoundsColorCmd {
     uint32 view_holder_id;
     ColorRgbValue color;
+};
+
+// This command sets the minimum RGB value for all displays, which
+// all pixel values are clamped to.
+struct SetDisplayMinimumRgbCmdHACK {
+    uint8 min_value;
 };

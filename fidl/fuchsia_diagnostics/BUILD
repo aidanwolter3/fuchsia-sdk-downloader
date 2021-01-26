@@ -17,8 +17,10 @@ fidl_library(
     library = "fuchsia.diagnostics",
     srcs = [
         "format.fidl",
+        "interest.fidl",
         "reader.fidl",
         "selector.fidl",
+        "severity.fidl",
     ],
     deps = [
         "//fidl/fuchsia_mem",
@@ -30,7 +32,7 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_diagnostics_cc",
     library = ":fuchsia_diagnostics",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
         "//fidl/fuchsia_mem:fuchsia_mem_cc",

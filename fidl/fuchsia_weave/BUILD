@@ -17,8 +17,14 @@ fidl_library(
     library = "fuchsia.weave",
     srcs = [
         "auth.fidl",
+        "bootstrap.fidl",
+        "common.fidl",
+        "weavestack.fidl",
     ],
     deps = [
+        "//fidl/fuchsia_mem",
+        "//fidl/fuchsia_net",
+        "//fidl/fuchsia_wlan_policy",
     ],
 )
 
@@ -27,9 +33,12 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_weave_cc",
     library = ":fuchsia_weave",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
+        "//fidl/fuchsia_mem:fuchsia_mem_cc",
+        "//fidl/fuchsia_net:fuchsia_net_cc",
+        "//fidl/fuchsia_wlan_policy:fuchsia_wlan_policy_cc",
     ],
 )
 

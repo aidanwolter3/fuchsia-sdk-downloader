@@ -17,6 +17,7 @@ fidl_library(
     library = "fuchsia.ui.policy",
     srcs = [
         "device_listener.fidl",
+        "display_backlight.fidl",
         "display_usage.fidl",
         "presentation.fidl",
         "presenter.fidl",
@@ -32,7 +33,7 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_ui_policy_cc",
     library = ":fuchsia_ui_policy",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
         "//fidl/fuchsia_ui_input:fuchsia_ui_input_cc",

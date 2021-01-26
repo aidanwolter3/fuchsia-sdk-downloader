@@ -6,10 +6,11 @@ library fuchsia.ui.gfx;
 
 using fuchsia.images;
 using fuchsia.ui.views;
+using zx;
 
 /// These are all of the types of resources that can be created within a
 /// `Session`. Add new fields only to the bottom of the list.
-union ResourceArgs {
+resource union ResourceArgs {
     // Memory resources.
     1: MemoryArgs memory;
     2: ImageArgs image;
@@ -55,30 +56,31 @@ union ResourceArgs {
     // A value that can be used in place of a constant value.
     27: VariableArgs variable;
 
-    // TODO(SCN-1225): Move these where they belong.  They're added to the end
+    // TODO(fxbug.dev/24428): Move these where they belong.  They're added to the end
     // of the struct temporarily until we transition to xunions.
     28: PointLightArgs point_light;
     29: reserved;
     30: reserved;
     31: ViewArgs3 view3;
     32: ImagePipe2Args image_pipe2;
+    33: ImageArgs2 image2;
 };
 
-struct ImagePipeArgs {
+resource struct ImagePipeArgs {
     request<fuchsia.images.ImagePipe> image_pipe_request;
 };
 
 /// `ImagePipe2` is a `Resource` that can be used as a `Texture` for a `Material`.
-struct ImagePipe2Args {
+resource struct ImagePipe2Args {
     request<fuchsia.images.ImagePipe2> image_pipe_request;
 };
 
 /// `Memory` is a `Resource` that wraps a client-provided Zircon vmo to register
 /// it with Scenic.
 // TODO: specify resizing behavior.  Who can resize?  Client/Scenic/both/none?
-struct MemoryArgs {
+resource struct MemoryArgs {
     // The VMO which backs this memory.
-    handle<vmo> vmo;
+    zx.handle:VMO vmo;
 
     // The amount of memory from `vmo` that should be utilized.
     uint64 allocation_size;
@@ -90,6 +92,7 @@ struct MemoryArgs {
 
 /// An image mapped to a range of a `Memory` resource.
 // TODO: more precise and extensive docs.
+[Deprecated]
 struct ImageArgs {
     fuchsia.images.ImageInfo info;
 
@@ -97,7 +100,24 @@ struct ImageArgs {
     uint32 memory_offset; // byte offset of image within `Memory` resource
 };
 
+/// An image mapped to a range of a `Memory` resource.
+struct ImageArgs2 {
+    uint32 width;
+    uint32 height;
+
+    /// The id of a `BufferCollection`. Before creating this resource, the
+    /// buffer collection should be registered on the same `Session` with
+    /// `RegisterBufferCollection` and it should have its contraints set.
+    /// Once the buffers are allocated successfully (e.g. after calling
+    /// `WaitForBuffersAllocated`), the collection's id can be used to create
+    /// the image resource.
+    uint32 buffer_collection_id;
+    /// The index of the VMO from the `BufferCollection` that backs this image.
+    uint32 buffer_collection_index;
+};
+
 /// A buffer mapped to a range of `Memory`.
+// TODO: replace BufferArgs with BufferArgs2 that supports sysmem.
 struct BufferArgs {
     uint32 memory_id; // id of a `Memory` resource
     uint32 memory_offset; // byte offset of buffer within `Memory` resource
@@ -115,7 +135,7 @@ struct BufferArgs {
 /// Usually the `View` and its associated `ViewHolder` exist in separate
 /// processes.  By combining them, the UI for an entire system can be built
 /// using content contributed from many different processes.
-struct ViewArgs {
+resource struct ViewArgs {
     fuchsia.ui.views.ViewToken token;
     string? debug_name;
 };
@@ -137,9 +157,10 @@ struct ViewArgs {
 /// feed-forward style. It is accompanied by a `ViewRefControl`, which Scenic
 /// uses to signal `View` destruction across the system; the `ViewRefControl`
 /// must be unique - do not clone it.
-struct ViewArgs3 {
+resource struct ViewArgs3 {
     fuchsia.ui.views.ViewToken token;
-    /// `control_ref.reference` must have full rights (i.e., with signaling).
+    /// `control_ref.reference` must have default eventpair rights (i.e., with
+    /// signaling), minus ZX_RIGHT_DUPLICATE.
     fuchsia.ui.views.ViewRefControl control_ref;
     /// `view_ref.reference` must have basic rights (i.e., no signaling).
     fuchsia.ui.views.ViewRef view_ref;
@@ -155,29 +176,29 @@ struct ViewArgs3 {
 /// Usually the `ViewHolder` and its associated `View` exist in separate
 /// processes.  By combining them, the UI for an entire system can be built
 /// using content contributed from many different processes.
-struct ViewHolderArgs {
+resource struct ViewHolderArgs {
     fuchsia.ui.views.ViewHolderToken token;
     string? debug_name;
 };
 
 /// A Compositor draws its `LayerStack` into a framebuffer provided by its
 /// attached `Display`, if any.  If no display is attached, nothing is rendered.
-// TODO(fxb/23686): there is currently no way to create/attach a display.
+// TODO(fxbug.dev/23686): there is currently no way to create/attach a display.
 struct CompositorArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 
 /// A DisplayCompositor draws its attached `LayerStack` into an image that is
 /// presented on a display.
 struct DisplayCompositorArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 
 /// An ImagePipeCompositor draws its attached `LayerStack` into an image that is
 /// presented on an image-pipe.
-struct ImagePipeCompositorArgs {
+resource struct ImagePipeCompositorArgs {
     fuchsia.images.ImagePipe target;
 };
 
@@ -189,7 +210,7 @@ struct ImagePipeCompositorArgs {
 /// Supported commands:
 /// - AddLayer
 struct LayerStackArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 
@@ -208,7 +229,7 @@ struct LayerStackArgs {
 /// - SetRotation (must rotate around Z-axis)
 /// - SetScale
 struct LayerArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 
@@ -219,7 +240,7 @@ struct LayerArgs {
 /// - Add/RemoveLight
 /// - AddChild
 struct SceneArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 
@@ -252,7 +273,7 @@ struct StereoCameraArgs {
 /// - SetCamera
 /// - SetRendererParam
 struct RendererArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 
@@ -262,7 +283,7 @@ struct RendererArgs {
 /// Supported commands:
 /// - SetLightColor
 struct AmbientLightArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 
@@ -277,7 +298,7 @@ struct AmbientLightArgs {
 /// - SetLightColor
 /// - SetLightDirection
 struct DirectionalLightArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 
@@ -291,7 +312,7 @@ struct DirectionalLightArgs {
 /// - SetPointLightPosition
 /// - SetPointLightFalloff
 struct PointLightArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 
@@ -302,7 +323,7 @@ struct PointLightArgs {
 ///   The texture can be an Image or ImagePipe.
 /// - SetColorCmd: sets the color.
 struct MaterialArgs {
-    // TODO(SCN-694): Clean up dummy args.
+    // TODO(fxbug.dev/23916): Clean up dummy args.
     uint32 dummy = 0;
 };
 

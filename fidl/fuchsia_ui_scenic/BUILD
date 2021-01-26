@@ -26,9 +26,11 @@ fidl_library(
         "//fidl/fuchsia_images",
         "//fidl/fuchsia_mem",
         "//fidl/fuchsia_scenic_scheduling",
+        "//fidl/fuchsia_sysmem",
         "//fidl/fuchsia_ui_gfx",
         "//fidl/fuchsia_ui_input",
         "//fidl/fuchsia_ui_views",
+        "//fidl/zx",
     ],
 )
 
@@ -37,15 +39,17 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_ui_scenic_cc",
     library = ":fuchsia_ui_scenic",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
         "//fidl/fuchsia_images:fuchsia_images_cc",
         "//fidl/fuchsia_mem:fuchsia_mem_cc",
         "//fidl/fuchsia_scenic_scheduling:fuchsia_scenic_scheduling_cc",
+        "//fidl/fuchsia_sysmem:fuchsia_sysmem_cc",
         "//fidl/fuchsia_ui_gfx:fuchsia_ui_gfx_cc",
         "//fidl/fuchsia_ui_input:fuchsia_ui_input_cc",
         "//fidl/fuchsia_ui_views:fuchsia_ui_views_cc",
+        "//fidl/zx:zx_cc",
     ],
 )
 

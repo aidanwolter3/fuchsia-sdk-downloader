@@ -39,8 +39,6 @@ cc_library(
         "include/lib/inspect/cpp/vmo/types.h",
     ],
     deps = [
-        "//pkg/async",
-        "//pkg/async_default",
         "//pkg/fdio",
         "//pkg/fit",
         "//pkg/zx",

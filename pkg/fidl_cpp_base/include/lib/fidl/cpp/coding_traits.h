@@ -11,6 +11,7 @@
 #include "lib/fidl/cpp/decoder.h"
 #include "lib/fidl/cpp/encoder.h"
 #include "lib/fidl/cpp/traits.h"
+#include "lib/fidl/cpp/types.h"
 #include "lib/fidl/cpp/vector.h"
 
 namespace fidl {
@@ -125,6 +126,54 @@ struct CodingTraits<VectorPtr<T>> {
   }
 };
 
+namespace internal {
+
+template <bool Value>
+class UseStdCopy {};
+
+template <typename T, typename EncoderImpl>
+void EncodeVectorBody(UseStdCopy<true>, EncoderImpl* encoder,
+                      typename std::vector<T>::iterator in_begin,
+                      typename std::vector<T>::iterator in_end, size_t out_offset) {
+  static_assert(CodingTraits<T>::inline_size_v1_no_ee == sizeof(T),
+                "stride doesn't match object size");
+  std::copy(in_begin, in_end, encoder->template GetPtr<T>(out_offset));
+}
+
+template <typename T, typename EncoderImpl>
+void EncodeVectorBody(UseStdCopy<false>, EncoderImpl* encoder,
+                      typename std::vector<T>::iterator in_begin,
+                      typename std::vector<T>::iterator in_end, size_t out_offset) {
+  constexpr size_t stride = CodingTraits<T>::inline_size_v1_no_ee;
+  for (typename std::vector<T>::iterator in_it = in_begin; in_it != in_end;
+       in_it++, out_offset += stride) {
+    CodingTraits<T>::Encode(encoder, &*in_it, out_offset);
+  }
+}
+
+template <typename T, typename DecoderImpl>
+void DecodeVectorBody(UseStdCopy<true>, DecoderImpl* decoder, size_t in_begin_offset,
+                      size_t in_end_offset, std::vector<T>* out, size_t count) {
+  static_assert(CodingTraits<T>::inline_size_v1_no_ee == sizeof(T),
+                "stride doesn't match object size");
+  *out = std::vector<T>(decoder->template GetPtr<T>(in_begin_offset),
+                        decoder->template GetPtr<T>(in_end_offset));
+}
+
+template <typename T, typename DecoderImpl>
+void DecodeVectorBody(UseStdCopy<false>, DecoderImpl* decoder, size_t in_begin_offset,
+                      size_t in_end_offset, std::vector<T>* out, size_t count) {
+  out->resize(count);
+  constexpr size_t stride = CodingTraits<T>::inline_size_v1_no_ee;
+  size_t in_offset = in_begin_offset;
+  typename std::vector<T>::iterator out_it = out->begin();
+  for (; in_offset < in_end_offset; in_offset += stride, out_it++) {
+    CodingTraits<T>::Decode(decoder, &*out_it, in_offset);
+  }
+}
+
+}  // namespace internal
+
 template <typename T>
 struct CodingTraits<::std::vector<T>> {
   static constexpr size_t inline_size_v1_no_ee = sizeof(fidl_vector_t);
@@ -132,20 +181,19 @@ struct CodingTraits<::std::vector<T>> {
   static void Encode(EncoderImpl* encoder, ::std::vector<T>* value, size_t offset) {
     size_t count = value->size();
     EncodeVectorPointer(encoder, count, offset);
-    size_t stride = CodingTraits<T>::inline_size_v1_no_ee;
+    constexpr size_t stride = CodingTraits<T>::inline_size_v1_no_ee;
     size_t base = encoder->Alloc(count * stride);
-    for (size_t i = 0; i < count; ++i)
-      CodingTraits<T>::Encode(encoder, &value->at(i), base + i * stride);
+    internal::EncodeVectorBody<T>(internal::UseStdCopy<IsMemcpyCompatible<T>::value>(), encoder,
+                                  value->begin(), value->end(), base);
   }
   template <class DecoderImpl>
   static void Decode(DecoderImpl* decoder, ::std::vector<T>* value, size_t offset) {
     fidl_vector_t* encoded = decoder->template GetPtr<fidl_vector_t>(offset);
-    value->resize(encoded->count);
-    size_t stride = CodingTraits<T>::inline_size_v1_no_ee;
+    constexpr size_t stride = CodingTraits<T>::inline_size_v1_no_ee;
     size_t base = decoder->GetOffset(encoded->data);
     size_t count = encoded->count;
-    for (size_t i = 0; i < count; ++i)
-      CodingTraits<T>::Decode(decoder, &value->at(i), base + i * stride);
+    internal::DecodeVectorBody<T>(internal::UseStdCopy<IsMemcpyCompatible<T>::value>(), decoder,
+                                  base, base + stride * count, value, count);
   }
 };
 
@@ -156,16 +204,76 @@ struct CodingTraits<::std::array<T, N>> {
   static void Encode(EncoderImpl* encoder, std::array<T, N>* value, size_t offset) {
     size_t stride;
     stride = CodingTraits<T>::inline_size_v1_no_ee;
-    for (size_t i = 0; i < N; ++i)
+    if (IsMemcpyCompatible<T>::value) {
+      memcpy(encoder->template GetPtr<void>(offset), &value[0], N * stride);
+      return;
+    }
+    for (size_t i = 0; i < N; ++i) {
       CodingTraits<T>::Encode(encoder, &value->at(i), offset + i * stride);
+    }
   }
   template <class DecoderImpl>
   static void Decode(DecoderImpl* decoder, std::array<T, N>* value, size_t offset) {
     size_t stride = CodingTraits<T>::inline_size_v1_no_ee;
-    for (size_t i = 0; i < N; ++i)
+    if (IsMemcpyCompatible<T>::value) {
+      memcpy(&value[0], decoder->template GetPtr<void>(offset), N * stride);
+      return;
+    }
+    for (size_t i = 0; i < N; ++i) {
       CodingTraits<T>::Decode(decoder, &value->at(i), offset + i * stride);
+    }
   }
 };
+
+template <class DecoderImpl>
+void DecodeUnknownBytesContents(DecoderImpl* decoder, std::vector<uint8_t>* value, size_t offset) {
+  memcpy(value->data(), decoder->template GetPtr<void>(offset), value->size());
+}
+
+template <class EncoderImpl>
+void EncodeUnknownBytesContents(EncoderImpl* encoder, std::vector<uint8_t>* value, size_t offset) {
+  std::copy(value->begin(), value->end(), encoder->template GetPtr<uint8_t>(offset));
+}
+
+template <class EncoderImpl>
+void EncodeUnknownBytes(EncoderImpl* encoder, std::vector<uint8_t>* value, size_t envelope_offset) {
+  // encode the envelope header
+  uint64_t num_bytes_then_num_handles = value->size();
+  CodingTraits<uint64_t>::Encode(encoder, &num_bytes_then_num_handles, envelope_offset);
+  *encoder->template GetPtr<uintptr_t>(envelope_offset + offsetof(fidl_envelope_t, presence)) =
+      FIDL_ALLOC_PRESENT;
+  // encode the envelope contents
+  EncodeUnknownBytesContents(encoder, value, encoder->Alloc(value->size()));
+}
+
+#ifdef __Fuchsia__
+template <class DecoderImpl>
+void DecodeUnknownDataContents(DecoderImpl* decoder, UnknownData* value, size_t offset) {
+  DecodeUnknownBytesContents(decoder, &value->bytes, offset);
+  for (auto& h : value->handles) {
+    h = decoder->ClaimHandle();
+  }
+}
+
+template <class EncoderImpl>
+void EncodeUnknownDataContents(EncoderImpl* encoder, UnknownData* value, size_t offset) {
+  EncodeUnknownBytesContents(encoder, &value->bytes, offset);
+  for (auto& handle : value->handles) {
+    encoder->EncodeUnknownHandle(&handle);
+  }
+}
+
+template <class EncoderImpl>
+void EncodeUnknownData(EncoderImpl* encoder, UnknownData* value, size_t envelope_offset) {
+  // encode the envelope header
+  uint64_t num_bytes_then_num_handles = value->bytes.size() | (value->handles.size() << 32);
+  CodingTraits<uint64_t>::Encode(encoder, &num_bytes_then_num_handles, envelope_offset);
+  *encoder->template GetPtr<uintptr_t>(envelope_offset + offsetof(fidl_envelope_t, presence)) =
+      FIDL_ALLOC_PRESENT;
+  // encode the envelope contents
+  EncodeUnknownDataContents(encoder, value, encoder->Alloc(value->bytes.size()));
+}
+#endif
 
 template <typename T, size_t InlineSizeV1NoEE>
 struct EncodableCodingTraits {

@@ -23,17 +23,21 @@ class InspectTreeNameListService final : public fuchsia::inspect::TreeNameIterat
 
   void GetNext(GetNextCallback callback) override {
     std::vector<std::string> ret;
-    size_t i = 0;
-    for (; i < fuchsia::inspect::MAX_TREE_NAME_LIST_SIZE && name_offset_ < names_.size(); i++) {
+    size_t bytes_used = sizeof(fidl_message_header_t) + sizeof(fidl_vector_t);
+    for (; name_offset_ < names_.size(); name_offset_++) {
+      bytes_used += sizeof(fidl_string_t);  // string overhead
+      bytes_used += FIDL_ALIGN(names_[name_offset_].length());
+      if (bytes_used > ZX_CHANNEL_MAX_MSG_BYTES) {
+        break;
+      }
       ret.emplace_back(std::move(names_[name_offset_]));
-      name_offset_++;
     }
 
     callback(std::move(ret));
 
     // Close the connection only if the response was empty. We respond with an empty vector to let
     // the client know we will be disconnecting.
-    if (i == 0) {
+    if (ret.empty() == 0) {
       done_callback_(this);
     }
   }
@@ -48,8 +52,11 @@ class InspectTreeNameListService final : public fuchsia::inspect::TreeNameIterat
 class InspectTreeService final : public fuchsia::inspect::Tree {
  public:
   InspectTreeService(Inspector inspector, async_dispatcher_t* dispatcher,
-                     fit::function<void(InspectTreeService*)> closer)
-      : inspector_(std::move(inspector)), executor_(dispatcher), closer_(std::move(closer)) {}
+                     TreeHandlerSettings settings, fit::function<void(InspectTreeService*)> closer)
+      : inspector_(std::move(inspector)),
+        executor_(dispatcher),
+        settings_(std::move(settings)),
+        closer_(std::move(closer)) {}
 
   // Cannot be moved or copied.
   InspectTreeService(const InspectTreeService&) = delete;
@@ -60,7 +67,11 @@ class InspectTreeService final : public fuchsia::inspect::Tree {
   void GetContent(GetContentCallback callback) override {
     fuchsia::inspect::TreeContent ret;
     fuchsia::mem::Buffer buffer;
-    buffer.vmo = inspector_.DuplicateVmo();
+    if (settings_.force_private_snapshot) {
+      buffer.vmo = inspector_.CopyVmo();
+    } else {
+      buffer.vmo = inspector_.DuplicateVmo();
+    }
     buffer.vmo.get_size(&buffer.size);
     ret.set_buffer(std::move(buffer));
     callback(std::move(ret));
@@ -80,9 +91,10 @@ class InspectTreeService final : public fuchsia::inspect::Tree {
         inspector_.OpenChild(std::move(child_name))
             .and_then([this, request = std::move(request)](Inspector& inspector) mutable {
               auto child = std::unique_ptr<InspectTreeService>(new InspectTreeService(
-                  std::move(inspector), executor_.dispatcher(),
+                  std::move(inspector), executor_.dispatcher(), settings_,
                   [this](InspectTreeService* ptr) { child_bindings_.RemoveBinding(ptr); }));
-              child_bindings_.AddBinding(std::move(child), std::move(request));
+              child_bindings_.AddBinding(std::move(child), std::move(request),
+                                         executor_.dispatcher());
             }));
   }
 
@@ -90,6 +102,7 @@ class InspectTreeService final : public fuchsia::inspect::Tree {
   Inspector inspector_;
 
   async::Executor executor_;
+  TreeHandlerSettings settings_;
   fidl::BindingSet<fuchsia::inspect::Tree, std::unique_ptr<InspectTreeService>> child_bindings_;
   fidl::BindingSet<fuchsia::inspect::TreeNameIterator, std::unique_ptr<InspectTreeNameListService>>
       name_list_bindings_;
@@ -100,7 +113,8 @@ class InspectTreeService final : public fuchsia::inspect::Tree {
 }  // namespace
 
 fidl::InterfaceRequestHandler<fuchsia::inspect::Tree> MakeTreeHandler(
-    const inspect::Inspector* inspector, async_dispatcher_t* dispatcher) {
+    const inspect::Inspector* inspector, async_dispatcher_t* dispatcher,
+    TreeHandlerSettings settings) {
   if (dispatcher == nullptr) {
     dispatcher = async_get_default_dispatcher();
     ZX_ASSERT(dispatcher);
@@ -108,14 +122,14 @@ fidl::InterfaceRequestHandler<fuchsia::inspect::Tree> MakeTreeHandler(
 
   auto bindings = std::make_unique<
       fidl::BindingSet<fuchsia::inspect::Tree, std::unique_ptr<InspectTreeService>>>();
-  return [bindings = std::move(bindings), dispatcher,
+  return [bindings = std::move(bindings), dispatcher, settings = std::move(settings),
           inspector](fidl::InterfaceRequest<fuchsia::inspect::Tree> request) mutable {
     bindings->AddBinding(std::make_unique<InspectTreeService>(
-                             *inspector, dispatcher,
+                             *inspector, dispatcher, settings,
                              [binding_ptr = bindings.get()](InspectTreeService* ptr) {
                                binding_ptr->RemoveBinding(ptr);
                              }),
-                         std::move(request));
+                         std::move(request), dispatcher);
   };
 }
 

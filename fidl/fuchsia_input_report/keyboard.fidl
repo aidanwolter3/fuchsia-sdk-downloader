@@ -1,0 +1,54 @@
+// Copyright 2019 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+library fuchsia.input.report;
+
+using fuchsia.ui.input2;
+using fuchsia.input;
+
+/// Hardcoded max sizes for keyboard vectors. These sizes should be increased
+/// if we ever see keyboards with more objects than can be represented.
+const uint32 KEYBOARD_MAX_NUM_KEYS = 256;
+const uint32 KEYBOARD_MAX_NUM_LEDS = 256;
+const uint32 KEYBOARD_MAX_PRESSED_KEYS = 256;
+
+/// Describes the format of the input report that will be sent from the keyboard
+/// to the device.
+table KeyboardInputDescriptor {
+    /// The list of keys that this keyboard contains.
+    /// Deprecated: in process of migration to input3.
+    1: vector<fuchsia.ui.input2.Key>:KEYBOARD_MAX_NUM_KEYS keys;
+
+    /// The list of keys that this keyboard contains.
+    2: vector<fuchsia.input.Key>:KEYBOARD_MAX_NUM_KEYS keys3;
+};
+
+/// Describes the format of the output report that can be sent to the keyboard..
+table KeyboardOutputDescriptor {
+    /// The list of keyboard LEDs that can be toggled.
+    1: vector<LedType>:KEYBOARD_MAX_NUM_LEDS leds;
+};
+
+/// The capabilities of a keyboard device.
+table KeyboardDescriptor {
+    1: KeyboardInputDescriptor input;
+    2: KeyboardOutputDescriptor output;
+};
+
+/// A single report created by a keyboard device.
+table KeyboardInputReport {
+    /// The list of keys that are currently pressed down.
+    /// Deprecated: in process of migration to input3.
+    1: vector<fuchsia.ui.input2.Key>:KEYBOARD_MAX_PRESSED_KEYS pressed_keys;
+
+    /// The list of keys that are currently pressed down.
+    2: vector<fuchsia.input.Key>:KEYBOARD_MAX_PRESSED_KEYS pressed_keys3;
+};
+
+/// A single report containing output information for a keyboard.
+table KeyboardOutputReport {
+    /// Each LED in this list will be turned on. Any LED not in this list will be
+    /// turned off.
+    1: vector<LedType>:KEYBOARD_MAX_NUM_LEDS enabled_leds;
+};

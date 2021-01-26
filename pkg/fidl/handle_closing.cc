@@ -17,13 +17,6 @@
 
 namespace {
 
-struct Position;
-
-struct StartingPoint {
-  uint8_t* const addr;
-  Position ToPosition() const;
-};
-
 struct Position {
   void* addr;
   Position operator+(uint32_t size) const {
@@ -34,25 +27,27 @@ struct Position {
     return *this;
   }
   template <typename T>
-  constexpr T* Get(StartingPoint start) const {
+  constexpr T* Get() const {
     return reinterpret_cast<T*>(addr);
   }
 };
 
-Position StartingPoint::ToPosition() const { return Position{reinterpret_cast<void*>(addr)}; }
+struct EnvelopeCheckpoint {};
 
 class FidlHandleCloser final
-    : public fidl::Visitor<fidl::MutatingVisitorTrait, StartingPoint, Position> {
+    : public fidl::Visitor<fidl::MutatingVisitorTrait, Position, EnvelopeCheckpoint> {
  public:
   FidlHandleCloser(const char** out_error_msg) : out_error_msg_(out_error_msg) {}
 
-  using StartingPoint = StartingPoint;
-
   using Position = Position;
 
+  static constexpr bool kOnlyWalkResources = true;
   static constexpr bool kContinueAfterConstraintViolation = true;
 
-  static constexpr bool kAllowNonNullableCollectionsToBeAbsent = false;
+  Status VisitAbsentPointerInNonNullableCollection(ObjectPointerPointer object_ptr_ptr) {
+    SetError("absent pointer disallowed in non-nullable collection");
+    return Status::kConstraintViolationError;
+  }
 
   Status VisitPointer(Position ptr_position, PointeeType pointee_type,
                       ObjectPointerPointer object_ptr_ptr, uint32_t inline_size,
@@ -72,16 +67,18 @@ class FidlHandleCloser final
 
   Status VisitVectorOrStringCount(CountPointer ptr) { return Status::kSuccess; }
 
-  Status VisitInternalPadding(Position padding_position, uint32_t padding_length) {
+  template <typename MaskType>
+  Status VisitInternalPadding(Position padding_position, MaskType mask) {
     return Status::kSuccess;
   }
 
-  Status EnterEnvelope(Position envelope_position, EnvelopePointer envelope,
-                       const fidl_type_t* payload_type) {
+  EnvelopeCheckpoint EnterEnvelope() { return {}; }
+
+  Status LeaveEnvelope(EnvelopePointer envelope, EnvelopeCheckpoint prev_checkpoint) {
     return Status::kSuccess;
   }
 
-  Status LeaveEnvelope(Position envelope_position, EnvelopePointer envelope) {
+  Status VisitUnknownEnvelope(EnvelopePointer envelope, FidlIsResource is_resource) {
     return Status::kSuccess;
   }
 
@@ -121,12 +118,7 @@ zx_status_t fidl_close_handles(const fidl_type_t* type, void* value, const char*
   }
 
   FidlHandleCloser handle_closer(out_error_msg);
-  fidl::Walk(handle_closer, type, StartingPoint{reinterpret_cast<uint8_t*>(value)});
+  fidl::Walk(handle_closer, type, Position{reinterpret_cast<uint8_t*>(value)});
 
   return handle_closer.status();
-}
-
-zx_status_t fidl_close_handles_msg(const fidl_type_t* type, const fidl_msg_t* msg,
-                                   const char** out_error_msg) {
-  return fidl_close_handles(type, msg->bytes, out_error_msg);
 }

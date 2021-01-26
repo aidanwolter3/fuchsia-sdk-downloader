@@ -4,6 +4,8 @@
 
 library fuchsia.mem;
 
+using zx;
+
 /// A buffer for data whose size is not necessarily a multiple of the page
 /// size.
 ///
@@ -11,9 +13,10 @@ library fuchsia.mem;
 /// size. As such, VMO alone cannot serve as a buffer for arbitrarly sized
 /// data. `fuchsia.mem.Buffer` is a standard struct that aggregate the VMO
 /// and its size.
-struct Buffer {
+[ForDeprecatedCBindings]
+resource struct Buffer {
     /// The vmo that contains the buffer.
-    handle<vmo> vmo;
+    zx.handle:VMO vmo;
 
     /// The number of bytes in the buffer.
     ///
@@ -31,7 +34,7 @@ struct Buffer {
 /// amounts of binary data (i.e., which is more efficient to provide using
 /// `bytes`) but also need to support arbitrary amounts of data (i.e., which
 /// need to be provided out-of-line in a `Buffer`).
-flexible union Data {
+flexible resource union Data {
     /// The binary data provided inline in the message.
     1: bytes bytes;
 

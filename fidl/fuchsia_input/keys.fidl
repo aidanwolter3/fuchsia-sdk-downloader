@@ -252,36 +252,6 @@ enum Key : uint32 {
     /// Keyboard Up Arrow
     UP = 0x00070052;
 
-    /// Keyboard Non-US \ and |
-    NON_US_BACKSLASH = 0x00070064;
-
-    /// Keyboard Left Control
-    LEFT_CTRL = 0x000700e0;
-
-    /// Keyboard Left Shift
-    LEFT_SHIFT = 0x000700e1;
-
-    /// Keyboard Left Alt
-    LEFT_ALT = 0x000700e2;
-
-    /// Keyboard Left GUI (Meta, Windows)
-    LEFT_META = 0x000700e3;
-
-    /// Keyboard Right Control
-    RIGHT_CTRL = 0x000700e4;
-
-    /// Keyboard Right Shift
-    RIGHT_SHIFT = 0x000700e5;
-
-    /// Keyboard Right Alt
-    RIGHT_ALT = 0x000700e6;
-
-    /// Keyboard Right GUI (Meta, Windows)
-    RIGHT_META = 0x000700e7;
-
-    /// Keyboard Menu
-    MENU = 0x00070076;
-
     /// Keypad Num Lock and Clear
     NUM_LOCK = 0x00070053;
 
@@ -333,8 +303,38 @@ enum Key : uint32 {
     /// Keypad . and Delete
     KEYPAD_DOT = 0x00070063;
 
+    /// Keyboard Non-US \ and |
+    NON_US_BACKSLASH = 0x00070064;
+
     /// Keypad =
     KEYPAD_EQUALS = 0x00070067;
+
+    /// Keyboard Menu
+    MENU = 0x00070076;
+
+    /// Keyboard Left Control
+    LEFT_CTRL = 0x000700e0;
+
+    /// Keyboard Left Shift
+    LEFT_SHIFT = 0x000700e1;
+
+    /// Keyboard Left Alt
+    LEFT_ALT = 0x000700e2;
+
+    /// Keyboard Left GUI (Meta, Windows)
+    LEFT_META = 0x000700e3;
+
+    /// Keyboard Right Control
+    RIGHT_CTRL = 0x000700e4;
+
+    /// Keyboard Right Shift
+    RIGHT_SHIFT = 0x000700e5;
+
+    /// Keyboard Right Alt
+    RIGHT_ALT = 0x000700e6;
+
+    /// Keyboard Right GUI (Meta, Windows)
+    RIGHT_META = 0x000700e7;
 
     /// Mute
     MEDIA_MUTE = 0x000c00e2;

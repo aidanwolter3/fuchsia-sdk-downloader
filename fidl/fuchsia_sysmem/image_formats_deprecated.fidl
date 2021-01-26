@@ -5,7 +5,8 @@
 library fuchsia.sysmem;
 
 /// Describes how an image is represented.
-// TODO(ZX-2260): change struct to table
+// TODO(fxbug.dev/32119): change struct to table
+[ForDeprecatedCBindings]
 struct ImageFormat {
     /// Row width in pixels.
     uint32 width;
@@ -26,6 +27,7 @@ struct ImageFormat {
     array<ImagePlane>:4 planes;
 };
 
+[ForDeprecatedCBindings]
 struct ImagePlane {
     /// Byte offset of the start of the plane from the beginning of the image.
     uint32 byte_offset;
@@ -36,7 +38,7 @@ struct ImagePlane {
 };
 
 /// Describes constraints for allocating images of some desired form.
-// TODO(ZX-2260): change struct to table
+// TODO(fxbug.dev/32119): change struct to table
 struct ImageSpec {
     /// Minimum width in pixels.
     uint32 min_width;
@@ -54,5 +56,5 @@ struct ImageSpec {
     /// Color space.
     ColorSpace color_space;
 
-    // TODO(ZX-2270): Add tiling formats.
+    // TODO(fxbug.dev/32128): Add tiling formats.
 };

@@ -23,7 +23,6 @@ fidl_library(
         "driver_connector.fidl",
         "format_modifier.fidl",
         "formats_deprecated.fidl",
-        "heap.fidl",
         "image_formats.fidl",
         "image_formats_deprecated.fidl",
         "secure_mem.fidl",
@@ -39,7 +38,7 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_sysmem_cc",
     library = ":fuchsia_sysmem",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
         "//fidl/zx:zx_cc",

@@ -18,8 +18,10 @@ fidl_library(
     srcs = [
         "annotation.fidl",
         "attachment.fidl",
+        "crash_register.fidl",
         "crash_reporter.fidl",
         "data_provider.fidl",
+        "data_provider_controller.fidl",
         "data_register.fidl",
         "device_id_provider.fidl",
         "last_reboot_info.fidl",
@@ -27,6 +29,7 @@ fidl_library(
     deps = [
         "//fidl/fuchsia_math",
         "//fidl/fuchsia_mem",
+        "//fidl/fuchsia_sys",
         "//fidl/zx",
     ],
 )
@@ -36,11 +39,12 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_feedback_cc",
     library = ":fuchsia_feedback",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
         "//fidl/fuchsia_math:fuchsia_math_cc",
         "//fidl/fuchsia_mem:fuchsia_mem_cc",
+        "//fidl/fuchsia_sys:fuchsia_sys_cc",
         "//fidl/zx:zx_cc",
     ],
 )

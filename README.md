@@ -1,6 +1,6 @@
 # Fuchsia Bazel SDK
 
-**Version 2b9cd1b4**
+**Version f0850bdc**
 
 Disclaimer: This is not an official Google project.
 
@@ -9,7 +9,7 @@ Disclaimer: This is not an official Google project.
 2. Sync to the version
 ```bash
 [~/fuchsia] $ jiri import -name=integration -overwrite=true \
-    -revision=2b9cd1b40ea36181da9209e55ce31bcc558b9447 \
+    -revision=f0850bdc5e85780dbd3b0eefe962afc544b05137 \
     flower https://fuchsia.googlesource.com/integration
 [~/fuchsia] $ rm -rf integration
 [~/fuchsia] $ jiri update -gc

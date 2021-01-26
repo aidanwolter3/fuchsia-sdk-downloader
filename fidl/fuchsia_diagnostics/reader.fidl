@@ -34,13 +34,13 @@ flexible union SelectorArgument {
     /// and properties in a data hierarchy namespaced by component.
     /// NOTE: All StringSelectors parsed from the raw_selector will be interperetted in
     ///       string_pattern mode, giving significance to special characters.
-    /// TODO(4601): Link to in-tree documentation for raw selector strings.
+    /// TODO(fxbug.dev/4601): Link to in-tree documentation for raw selector strings.
     2: string:MAXIMUM_RAW_SELECTOR_LENGTH raw_selector;
 };
 
 /// A fidl union containing a complete hierarchy of structured diagnostics
 /// data, such that the content can be parsed into a file by itself.
-flexible union FormattedContent {
+flexible resource union FormattedContent {
     /// A diagnostics schema encoded as json.
     /// The VMO will contain up to 1mb of diagnostics data.
     1: fuchsia.mem.Buffer json;
@@ -68,6 +68,10 @@ enum StreamMode : uint8 {
 enum DataType : uint8 {
     /// Complete inspect hierarchies on the system.
     INSPECT = 1;
+    /// Start|Stop|Running|DiagnosticsReady events on the system.
+    LIFECYCLE = 2;
+    /// Log streams on the system.
+    LOGS = 3;
 };
 
 flexible union ClientSelectorConfiguration {
@@ -79,6 +83,26 @@ flexible union ClientSelectorConfiguration {
     /// select_all must be true if set, and specifies that the client wants to retrieve
     /// all data that their connection is able to expose.
     2: bool select_all;
+};
+
+/// Parameters which configure a diagnostics stream's performance properties.
+table PerformanceConfiguration {
+    /// Maximum aggregate size of all formatted contents returned by
+    /// the batch iterator for a diagnostics stream. If this value is set for a stream
+    /// configured in subscribe mode, the stream will terminate when the max size has
+    /// been reached.
+    /// NOTE: OPTIONAL
+    1: uint64 max_aggregate_content_size_bytes;
+
+    /// Configuration specifying max number of seconds to wait for a single
+    /// component to have its diagnostics data "pumped". This value can used
+    /// for testing or if you know the component you are interested is in under
+    /// heavy load.
+    /// If not provided, then PER_COMPONENT_ASYNC_TIMEOUT_SECONDS as defined in
+    /// https://fuchsia.googlesource.com/fuchsia/+/refs/heads/master/src/diagnostics/archivist/src/constants.rs
+    /// will be used.
+    /// NOTE: OPTIONAL
+    2: int64 batch_retrieval_timeout_seconds;
 };
 
 /// Parameters needed to configure a stream of diagnostics information.
@@ -103,6 +127,20 @@ table StreamParameters {
     /// of provided selectors, or can specify that they want all available data.
     /// NOTE: REQUIRED
     4: ClientSelectorConfiguration client_selector_configuration;
+
+    /// Configuration specifying max number of seconds to wait for a single
+    /// component to have its diagnostics data "pumped". This value can used
+    /// for testing or if you know the component you are interested is in under
+    /// heavy load.
+    /// If not provided, then PER_COMPONENT_ASYNC_TIMEOUT_SECONDS as defined in
+    /// https://fuchsia.googlesource.com/fuchsia/+/refs/heads/master/src/diagnostics/archivist/src/constants.rs
+    /// will be used.
+    /// NOTE: OPTIONAL
+    5: int64 batch_retrieval_timeout_seconds;
+
+    /// Parameters which configure a diagnostics stream's performance properties.
+    /// NOTE: OPTIONAL
+    6: PerformanceConfiguration performance_configuration;
 };
 
 /// Outer protocol for interacting with the different diagnostics data sources.

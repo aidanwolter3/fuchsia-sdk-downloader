@@ -11,11 +11,9 @@
 
 __BEGIN_CDECLS
 
-// Get the zx_handle_t corresponding to the thrd_t. This handle is
-// still owned by the C11 thread, and will not persist after the
-// thread exits and is joined or detached. Callers must duplicate the
-// handle, therefore, if they wish the thread handle to outlive the
-// execution of the C11 thread.
+// Get the zx_handle_t corresponding to the thrd_t. This handle is still owned by the C11 thread,
+// and will not persist after the thread exits. Callers must duplicate the handle, therefore, if
+// they wish the thread handle to outlive the execution of the C11 thread.
 zx_handle_t thrd_get_zx_handle(thrd_t t);
 
 // Converts a threads.h-style status value to an |zx_status_t|.
@@ -36,5 +34,21 @@ static inline zx_status_t __PURE thrd_status_to_zx_status(int thrd_status) {
 }
 
 __END_CDECLS
+
+#ifdef __cplusplus
+
+#if __has_include(<thread>)
+
+#include <thread>
+
+// Get the zx_handle_t corresponding to the std::thread::native_handle() value.
+// See `thrd_get_zx_handle` (above) for constraints on the returned handle.
+// Using this API avoids any assumptions about std::thread::native_handle_type
+// corresponding exactly to thrd_t or any other particular type.
+zx_handle_t native_thread_get_zx_handle(std::thread::native_handle_type);
+
+#endif  // __has_include(<thread>)
+
+#endif  // __cplusplus
 
 #endif  // SYSROOT_ZIRCON_THREADS_H_

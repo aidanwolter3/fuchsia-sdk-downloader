@@ -22,11 +22,22 @@ Encoder::Encoder(uint64_t ordinal) { EncodeMessageHeader(ordinal); }
 
 Encoder::~Encoder() = default;
 
+const size_t kSmallAllocSize = 512;
+const size_t kLargeAllocSize = 65536;
+
 size_t Encoder::Alloc(size_t size) {
   size_t offset = bytes_.size();
   size_t new_size = bytes_.size() + Align(size);
-  ZX_ASSERT(new_size >= offset);
+
+  if (likely(new_size <= kSmallAllocSize)) {
+    bytes_.reserve(kSmallAllocSize);
+  } else if (likely(new_size <= kLargeAllocSize)) {
+    bytes_.reserve(kLargeAllocSize);
+  } else {
+    bytes_.reserve(new_size);
+  }
   bytes_.resize(new_size);
+
   return offset;
 }
 
@@ -39,11 +50,19 @@ void Encoder::EncodeHandle(zx::object_base* value, size_t offset) {
     *GetPtr<zx_handle_t>(offset) = FIDL_HANDLE_ABSENT;
   }
 }
+
+void Encoder::EncodeUnknownHandle(zx::object_base* value) {
+  if (value->is_valid()) {
+    handles_.push_back(value->release());
+  }
+}
 #endif
 
-Message Encoder::GetMessage() {
-  return Message(BytePart(bytes_.data(), bytes_.size(), bytes_.size()),
-                 HandlePart(handles_.data(), handles_.size(), handles_.size()));
+HLCPPOutgoingMessage Encoder::GetMessage() {
+  return HLCPPOutgoingMessage(BytePart(bytes_.data(), static_cast<uint32_t>(bytes_.size()),
+                                       static_cast<uint32_t>(bytes_.size())),
+                              HandlePart(handles_.data(), static_cast<uint32_t>(handles_.size()),
+                                         static_cast<uint32_t>(handles_.size())));
 }
 
 void Encoder::Reset(uint64_t ordinal) {
@@ -56,7 +75,6 @@ void Encoder::EncodeMessageHeader(uint64_t ordinal) {
   size_t offset = Alloc(sizeof(fidl_message_header_t));
   fidl_message_header_t* header = GetPtr<fidl_message_header_t>(offset);
   fidl_init_txn_header(header, 0, ordinal);
-  header->flags[0] |= FIDL_TXN_HEADER_UNION_FROM_XUNION_FLAG;
 }
 
 }  // namespace fidl

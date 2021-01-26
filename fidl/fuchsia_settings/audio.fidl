@@ -12,17 +12,21 @@ using fuchsia.media;
 /// REQUEST_NOT_SUPPORTED, INTERNAL_SERVICE_ERROR, PERSISTENT_STORAGE_ERROR
 [Discoverable]
 protocol Audio {
-    /// TO BE DEPRECATED: new watches will use Watch2 in the future.
-    [Transitional = "To be deprecated in favor of Watch2"]
-    Watch() -> (AudioSettings settings) error Error;
+    /// Gets the current [AudioSettings]. Returns immediately on first call;
+    /// subsequent calls return when the value changes.
+    ///
+    /// If this call fails, it is considered a fatal error and the channel
+    /// will be closed.
+    [Transitional = "Deprecated in favor of Watch"]
+    Watch2() -> (AudioSettings settings);
 
     /// Gets the current [AudioSettings]. Returns immediately on first call;
     /// subsequent calls return when the value changes.
     ///
     /// If this call fails, it is considered a fatal error and the channel
     /// will be closed.
-    [Transitional = "Future Replacement for Watch"]
-    Watch2() -> (AudioSettings settings);
+    [Transitional = "Future replacement for Watch2"]
+    Watch() -> (AudioSettings settings);
 
     /// Sets audio settings. Any field not explicitly set in the table performs a
     /// no-op, and will not make any changes.
@@ -68,7 +72,7 @@ table AudioSettings {
     /// one AudioStreamSettings for each fuchsia.media.AudioRenderUsage.
     1: vector<AudioStreamSettings>:5 streams;
 
-    /// Settings related to the audio input.
+    /// To be deprecated in favor of fuchsia.settings.InputDeviceSettings.
     2: AudioInput input;
 };
 

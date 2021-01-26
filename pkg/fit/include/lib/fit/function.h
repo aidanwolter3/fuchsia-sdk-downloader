@@ -6,6 +6,7 @@
 #define LIB_FIT_FUNCTION_H_
 
 #include "function_internal.h"
+#include "utility_internal.h"
 
 namespace fit {
 
@@ -54,9 +55,9 @@ constexpr size_t default_inline_target_size = sizeof(void*) * 2;
 // EXAMPLES
 //
 // -
-// https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/ulib/fit/test/examples/function_example1.cc
+// https://fuchsia.googlesource.com/fuchsia/+/HEAD/zircon/system/ulib/fit/test/examples/function_example1.cc
 // -
-// https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/ulib/fit/test/examples/function_example2.cc
+// https://fuchsia.googlesource.com/fuchsia/+/HEAD/zircon/system/ulib/fit/test/examples/function_example2.cc
 //
 template <typename T, size_t inline_target_size = default_inline_target_size>
 using function = function_impl<inline_target_size,
@@ -168,6 +169,16 @@ class function_impl<inline_target_size, require_inline, Result(Args...)> final
   friend const void* ::fit::internal::get_target_type_id<>(
       const function_impl<inline_target_size, require_inline, Result(Args...)>&);
 
+  template <typename U>
+  using not_self_type = ::fit::internal::not_same_type<function_impl, U>;
+
+  template <typename... Conditions>
+  using requires_conditions = ::fit::internal::requires_conditions<Conditions...>;
+
+  template <typename... Conditions>
+  using assignment_requires_conditions =
+      ::fit::internal::assignment_requires_conditions<function_impl&, Conditions...>;
+
  public:
   // The function's result type.
   using typename base::result_type;
@@ -194,9 +205,11 @@ class function_impl<inline_target_size, require_inline, Result(Args...)> final
   // Note that specializations of this template method that take fit::callback
   // objects as the target Callable are deleted (see below).
   template <typename Callable,
-            typename = std::enable_if_t<std::is_convertible<
-                decltype(std::declval<Callable&>()(std::declval<Args>()...)), result_type>::value>>
-  function_impl(Callable target) : base(std::move(target)) {}
+            requires_conditions<
+                std::is_convertible<decltype(std::declval<Callable&>()(std::declval<Args>()...)),
+                                    result_type>,
+                not_self_type<Callable>> = true>
+  function_impl(Callable&& target) : base(std::forward<Callable>(target)) {}
 
   // Deletes the specializations of function_impl(Callable) that would allow
   // a |fit::function| to be constructed from a |fit::callback|. This prevents
@@ -231,11 +244,13 @@ class function_impl<inline_target_size, require_inline, Result(Args...)> final
   //
   // Note that specializations of this template method that take fit::callback
   // objects as the target Callable are deleted (see below).
-  template <typename Callable,
-            typename = std::enable_if_t<std::is_convertible<
-                decltype(std::declval<Callable&>()(std::declval<Args>()...)), result_type>::value>>
-  function_impl& operator=(Callable target) {
-    base::assign(std::move(target));
+  template <typename Callable>
+  assignment_requires_conditions<
+      std::is_convertible<decltype(std::declval<Callable&>()(std::declval<Args>()...)),
+                          result_type>,
+      not_self_type<Callable>>
+  operator=(Callable&& target) {
+    base::assign(std::forward<Callable>(target));
     return *this;
   }
 
@@ -324,6 +339,16 @@ class callback_impl<inline_target_size, require_inline, Result(Args...)> final
   friend const void* ::fit::internal::get_target_type_id<>(
       const callback_impl<inline_target_size, require_inline, Result(Args...)>&);
 
+  template <typename U>
+  using not_self_type = ::fit::internal::not_same_type<callback_impl, U>;
+
+  template <typename... Conditions>
+  using requires_conditions = ::fit::internal::requires_conditions<Conditions...>;
+
+  template <typename... Conditions>
+  using assignment_requires_conditions =
+      ::fit::internal::assignment_requires_conditions<callback_impl&, Conditions...>;
+
  public:
   // The callback function's result type.
   using typename base::result_type;
@@ -347,9 +372,11 @@ class callback_impl<inline_target_size, require_inline, Result(Args...)> final
   // existence of an appropriate operator () to resolve overloads and implicit
   // casts properly.
   template <typename Callable,
-            typename = std::enable_if_t<std::is_convertible<
-                decltype(std::declval<Callable&>()(std::declval<Args>()...)), result_type>::value>>
-  callback_impl(Callable target) : base(std::move(target)) {}
+            requires_conditions<
+                std::is_convertible<decltype(std::declval<Callable&>()(std::declval<Args>()...)),
+                                    result_type>,
+                not_self_type<Callable>> = true>
+  callback_impl(Callable&& target) : base(std::forward<Callable>(target)) {}
 
   // Creates a callback with a target moved from another callback,
   // leaving the other callback with an empty target.
@@ -371,11 +398,13 @@ class callback_impl<inline_target_size, require_inline, Result(Args...)> final
   // For functors, we need to capture the raw type but also restrict on the
   // existence of an appropriate operator () to resolve overloads and implicit
   // casts properly.
-  template <typename Callable,
-            typename = std::enable_if_t<std::is_convertible<
-                decltype(std::declval<Callable&>()(std::declval<Args>()...)), result_type>::value>>
-  callback_impl& operator=(Callable target) {
-    base::assign(std::move(target));
+  template <typename Callable>
+  assignment_requires_conditions<
+      std::is_convertible<decltype(std::declval<Callable&>()(std::declval<Args>()...)),
+                          result_type>,
+      not_self_type<Callable>>
+  operator=(Callable&& target) {
+    base::assign(std::forward<Callable>(target));
     return *this;
   }
 

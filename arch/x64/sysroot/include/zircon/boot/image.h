@@ -12,6 +12,7 @@
 #include <stdint.h>
 #endif
 
+
 // Zircon Boot Image format (ZBI).
 //
 // A Zircon Boot Image consists of a container header followed by boot
@@ -133,7 +134,10 @@ typedef struct {
     macro(ZBI_TYPE_DRV_BOARD_INFO, "DRV_BOARD_INFO", ".bin") \
     macro(ZBI_TYPE_IMAGE_ARGS, "IMAGE_ARGS", ".txt") \
     macro(ZBI_TYPE_BOOT_VERSION, "BOOT_VERSION", ".bin") \
-    macro(ZBI_TYPE_HW_REBOOT_REASON, "HW_REBOOT_REASON", ".bin")
+    macro(ZBI_TYPE_HW_REBOOT_REASON, "HW_REBOOT_REASON", ".bin") \
+    macro(ZBI_TYPE_SERIAL_NUMBER, "SERIAL_NUMBER", ".txt") \
+    macro(ZBI_TYPE_BOOTLOADER_FILE, "BOOTLOADER_FILE", ".bin") \
+    macro(ZBI_TYPE_DEVICETREE, "DEVICETREE", ".dtb")
 
 // Each ZBI starts with a container header.
 //     length:          Total size of the image after this header.
@@ -204,7 +208,7 @@ typedef struct {
 //     The kernel assumes it was loaded at a fixed physical address of
 //     0x100000 (1MB).  zbi_kernel_t.entry is the absolute physical address
 //     of the PC location where the kernel will start.
-//     TODO(SEC-31): Perhaps this will change??
+//     TODO(fxbug.dev/24762): Perhaps this will change??
 //     The processor is in 64-bit mode with direct virtual to physical
 //     mapping covering the physical memory where the kernel and
 //     bootloader-constructed ZBI were loaded.
@@ -652,5 +656,26 @@ enum class ZbiHwRebootReason : uint32_t {
 using zbi_hw_reboot_reason_t = ZbiHwRebootReason;
 #endif  // __cplusplus
 #endif  // __ASSEMBLER__
+
+// The serial number, an unterminated ASCII string of printable non-whitespace
+// characters with length zbi_header_t.length.
+#define ZBI_TYPE_SERIAL_NUMBER          (0x4e4c5253) // SRLN
+
+// This type specifies a binary file passed in by the bootloader.
+// The first byte specifies the length of the filename without a NUL terminator.
+// The filename starts on the second byte.
+// The file contents are located immediately after the filename.
+//
+// Layout: | name_len |        name       |   payload
+//           ^(1 byte)  ^(name_len bytes)     ^(length of file)
+#define ZBI_TYPE_BOOTLOADER_FILE        (0x4C465442) // BTFL
+
+// The devicetree blob from the legacy boot loader, if any.  This is used only
+// for diagnostic and development purposes.  Zircon kernel and driver
+// configuration is entirely driven by specific ZBI items from the boot
+// loader.  The boot shims for legacy boot loaders pass the raw devicetree
+// along for development purposes, but extract information from it to populate
+// specific ZBI items such as ZBI_TYPE_KERNEL_DRIVER et al.
+#define ZBI_TYPE_DEVICETREE             (0xd00dfeed)
 
 #endif  // SYSROOT_ZIRCON_BOOT_IMAGE_H_

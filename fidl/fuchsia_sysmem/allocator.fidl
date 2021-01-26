@@ -8,8 +8,8 @@ using zx;
 
 /// Allocates system memory buffers.
 ///
-// Needs Layout = "Simple" because used with "FIDL Simple C Bindings".
-[Discoverable, Layout = "Simple"]
+// Needs ForDeprecatedCBindings because used with "FIDL Simple C Bindings".
+[Discoverable, ForDeprecatedCBindings]
 protocol Allocator {
     /// Allocates a BufferCollection on behalf of a single client (aka initiator)
     /// who is also the only participant (from the point of view of sysmem).
@@ -22,17 +22,15 @@ protocol Allocator {
     /// and to let relevant participants directly convey their own constraints to
     /// sysmem.
     ///
-    /// `constraints` indicates constraints on the buffer collection, such as how
-    /// many buffers to allocate, buffer size constraints, etc.
-    ///
-    /// `collection` is the server end of the BufferCollection FIDL channel.  The
-    /// client can call SetConstraints() and then WaitForBuffersAllocated() on
-    /// the client end of this channel to specify constraints and then determine
-    /// success/failure and get the BufferCollectionInfo_2 for the
-    /// BufferCollection.  The client should also keep the client end of
-    /// this channel open while using the BufferCollection, and should notice
-    /// when this channel closes and stop using the BufferCollection ASAP.
-    AllocateNonSharedCollection(request<BufferCollection> collection);
+    /// `collection_request` is the server end of the BufferCollection FIDL
+    /// channel.  The client can call SetConstraints() and then
+    /// WaitForBuffersAllocated() on the client end of this channel to specify
+    /// constraints and then determine success/failure and get the
+    /// BufferCollectionInfo_2 for the BufferCollection.  The client should also
+    /// keep the client end of this channel open while using the
+    /// BufferCollection, and should notice when this channel closes and stop
+    /// using the BufferCollection ASAP.
+    AllocateNonSharedCollection(request<BufferCollection> collection_request);
 
     /// Creates a logical BufferCollectionToken which can be shared among
     /// participants (using BufferCollectionToken.Duplicate()), and then
@@ -57,11 +55,11 @@ protocol Allocator {
     /// sysmem using BufferCollectionToken.Duplicate().  The token is being
     /// "exchanged" for a channel to the logical BufferCollection.
     ///
-    /// `buffer_collection` the server end of a BufferCollection channel.  The
-    /// sender retains the client end as usual.  The BufferCollection channel
-    /// is a single participant's connection to the logical BufferCollection.
-    /// There typically will be other participants with their own
-    /// BufferCollection channel to the logical BufferCollection.
+    /// `buffer_collection_request` the server end of a BufferCollection
+    /// channel.  The sender retains the client end as usual.  The
+    /// BufferCollection channel is a single participant's connection to the
+    /// logical BufferCollection.  There typically will be other participants
+    /// with their own BufferCollection channel to the logical BufferCollection.
     BindSharedCollection(BufferCollectionToken token,
                          request<BufferCollection> buffer_collection_request);
 
@@ -111,4 +109,17 @@ protocol Allocator {
     /// be a BufferCollectionToken channel.  This can be obtained from
     /// zx_object_get_info() ZX_INFO_HANDLE_BASIC related_koid.
     ValidateBufferCollectionToken(zx.koid token_server_koid) -> (bool is_known);
+
+    /// Set information about the current client that can be used by sysmem to
+    /// help debug leaking memory and hangs waiting for constraints. |name| can
+    /// be an arbitrary string, but the current process name (see
+    /// fsl::GetCurrentProcessName()) is a good default. |id| can be an arbitrary
+    /// id, but the current process ID (see fsl::GetCurrentProcessKoid()) is a
+    /// good default.
+    /// This information is propagated to all BufferCollections created using
+    /// BindSharedCollection() or AllocateNonSharedCollection() from this
+    /// allocator. It does not affect BufferCollectionTokens, since they are
+    /// often passed cross-process and should have their names managed manually.
+    [Transitional]
+    SetDebugClientInfo(string:64 name, uint64 id);
 };

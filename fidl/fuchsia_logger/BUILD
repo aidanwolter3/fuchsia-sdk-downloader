@@ -19,6 +19,7 @@ fidl_library(
         "logger.fidl",
     ],
     deps = [
+        "//fidl/fuchsia_diagnostics",
         "//fidl/zx",
     ],
 )
@@ -28,9 +29,10 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_logger_cc",
     library = ":fuchsia_logger",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
+        "//fidl/fuchsia_diagnostics:fuchsia_diagnostics_cc",
         "//fidl/zx:zx_cc",
     ],
 )

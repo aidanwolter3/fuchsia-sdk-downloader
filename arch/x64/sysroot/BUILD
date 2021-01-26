@@ -17,7 +17,7 @@ exports_files(
 package_files(
     name = "dist",
     contents = {
-        "dist/lib/ld.so.1": "lib/ld.so.1",
+        "dist/lib/asan-ubsan/ld.so.1": "lib/ld.so.1",
     },
     visibility = [
         "//visibility:public",

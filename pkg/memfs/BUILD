@@ -26,8 +26,10 @@ cc_library(
         "//build_defs/target_cpu:x64": [":x64_prebuilts"],
     }) + [
         "//pkg/async",
+        "//pkg/fdio",
         "//pkg/fit",
         "//pkg/sync",
+        "//pkg/trace_engine",
     ],
     strip_include_prefix = "include",
     data = fuchsia_select({

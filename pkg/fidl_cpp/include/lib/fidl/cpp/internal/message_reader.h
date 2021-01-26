@@ -105,6 +105,11 @@ class MessageReader final {
   // error handler.
   void set_message_handler(MessageHandler* message_handler) { message_handler_ = message_handler; }
 
+  // Whether an error handler has been set.
+  //
+  // See |set_error_handler()|.
+  constexpr bool has_error_handler() const { return static_cast<bool>(error_handler_); }
+
   // The given error handler is called whenever the |MessageReader| encounters
   // an error on the channel.
   //
@@ -130,7 +135,7 @@ class MessageReader final {
                           const zx_packet_signal_t* signal);
   void OnHandleReady(async_dispatcher_t* dispatcher, zx_status_t status,
                      const zx_packet_signal_t* signal);
-  zx_status_t ReadAndDispatchMessage(MessageBuffer* buffer);
+  zx_status_t ReadAndDispatchMessage(IncomingMessageBuffer* buffer);
   void NotifyError(zx_status_t epitaph_value);
   void Stop();
 

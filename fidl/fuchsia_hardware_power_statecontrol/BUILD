@@ -17,6 +17,7 @@ fidl_library(
     library = "fuchsia.hardware.power.statecontrol",
     srcs = [
         "admin.fidl",
+        "reboot_reason.fidl",
     ],
     deps = [
         "//fidl/zx",
@@ -28,7 +29,7 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_hardware_power_statecontrol_cc",
     library = ":fuchsia_hardware_power_statecontrol",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
         "//fidl/zx:zx_cc",

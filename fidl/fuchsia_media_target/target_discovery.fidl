@@ -17,11 +17,11 @@ using fuchsia.media.audio;
 using fuchsia.media.sessions2;
 
 /// A unique id for a target.
-using Id = uint64;
+alias Id = uint64;
 
 /// A user-visible name for a target to display in user interface or read
 /// in voice interfaces.
-using DisplayName = string:200;
+alias DisplayName = string:200;
 
 /// A protocol for discovering media targets.
 [Discoverable]
@@ -33,10 +33,9 @@ protocol Discovery {
     ///
     /// A media session is rendered on the target to which it is bound.
     ///
-    /// First, existing bindings will be returned. Then, bindings added
-    /// and removed since connection will be returned as deltas on the
-    /// initial set.
-    GetNextSessionBinding() -> (SessionBindingWatchEvent event);
+    /// Bindings are returned as deltas between the watch calls, leave a
+    /// request hanging to get the latest updates.
+    WatchSessionBindings() -> (SessionBindingsWatchEvent event);
 
     /// Connects to a target by id. Drops the given channel if no such
     /// target exists.
@@ -50,16 +49,14 @@ struct SessionBinding {
     Id target_id;
 };
 
-union SessionBindingWatchEvent {
-    /// An already existing binding at the time of connection.
-    1: SessionBinding existing;
-    /// Indicates the full set of bindings from the time of connection have
-    /// been enumerated. No more `existing` events will be received.
-    2: Void idle;
-    /// A new binding added since connection.
-    3: SessionBinding added;
-    /// A binding removed.
-    4: SessionBinding removed;
+table SessionBindingsWatchEvent {
+    /// A list of active session bindings added or updated in the network
+    /// at any point in time.
+    1: vector<SessionBinding>:MAX updated;
+
+    /// A list of session bindings that are removed in the network since
+    /// notified.
+    2: vector<SessionBinding>:MAX removed;
 };
 
 /// A target is a device or group of devices on which media can be rendered,
@@ -96,26 +93,16 @@ protocol Group {
     /// hanging to get replies when changes occur. New clients will be caught
     /// up with the state of the world.
     ///
-    /// First, existing targets will be returned. Then, targets added and removed
-    /// since connection will be returned as deltas on the initial set.
-    GetNextTarget() -> (TargetWatchEvent target_watch_event);
+    /// Targets are returned as deltas between the watch calls.
+    WatchTargets() -> (TargetsWatchEvent targets_watch_event);
 };
 
-struct Void {
-};
+table TargetsWatchEvent {
+    /// Targets added or updated on the network at any point in time.
+    1: vector<Description>:MAX updated;
 
-union TargetWatchEvent {
-    /// An already existing target at the time of connection.
-    1: Description existing;
-    /// Indicates the full set of targets from the time of connection have
-    /// been enumerated. No more `existing` events will be received.
-    2: Void idle;
-    /// A new target added since connection.
-    3: Description added;
-    /// A target’s description was updated.
-    4: Description updated;
-    /// A target removed.
-    5: Id removed;
+    /// Targets that are removed since last notified.
+    2: vector<Id>:MAX removed;
 };
 
 /// A protocol to control the volume of target.

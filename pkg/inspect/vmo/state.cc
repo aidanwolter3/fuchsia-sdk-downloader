@@ -52,12 +52,12 @@ AutoGenerationIncrement::~AutoGenerationIncrement() { Release(heap_->GetBlock(ta
 
 void AutoGenerationIncrement ::Acquire(Block* block) {
   uint64_t* ptr = &block->payload.u64;
-  __atomic_fetch_add(ptr, 1, std::memory_order_acq_rel);
+  __atomic_fetch_add(ptr, 1, static_cast<int>(std::memory_order_acq_rel));
 }
 
 void AutoGenerationIncrement::Release(Block* block) {
   uint64_t* ptr = &block->payload.u64;
-  __atomic_fetch_add(ptr, 1, std::memory_order_release);
+  __atomic_fetch_add(ptr, 1, static_cast<int>(std::memory_order_release));
 }
 
 }  // namespace
@@ -168,6 +168,8 @@ std::shared_ptr<State> State::CreateWithSize(size_t size) {
   if (size == 0 || ZX_OK != zx::vmo::create(size, 0, &vmo)) {
     return nullptr;
   }
+  static const char kName[] = "InspectHeap";
+  vmo.set_property(ZX_PROP_NAME, kName, strlen(kName));
   return State::Create(std::make_unique<Heap>(std::move(vmo)));
 }
 
@@ -981,6 +983,16 @@ std::string State::UniqueName(const std::string& prefix) {
   uint64_t value = next_unique_id_.fetch_add(1, std::memory_order_relaxed);
   out << prefix << "0x" << std::hex << value;
   return out.str();
+}
+
+InspectStats State::GetStats() const {
+  InspectStats ret = {};
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  ret.dynamic_child_count = link_callbacks_.size();
+  ret.maximum_size = heap_->maximum_size();
+  ret.size = heap_->size();
+  return ret;
 }
 
 }  // namespace internal

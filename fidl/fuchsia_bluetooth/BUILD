@@ -19,10 +19,10 @@ fidl_library(
         "address.fidl",
         "appearance.fidl",
         "connection_role.fidl",
+        "deprecated.fidl",
         "device_class.fidl",
+        "device_name.fidl",
         "id.fidl",
-        "nullables.fidl",
-        "status.fidl",
         "uuid.fidl",
     ],
     deps = [
@@ -34,7 +34,7 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_bluetooth_cc",
     library = ":fuchsia_bluetooth",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
     ],

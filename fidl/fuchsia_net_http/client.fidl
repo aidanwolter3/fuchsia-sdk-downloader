@@ -8,7 +8,7 @@ using fuchsia.mem;
 using fuchsia.url;
 using zx;
 
-using Method = string:1024;
+alias Method = string:1024;
 
 /// An error occurred during the HTTP transaction.
 enum Error {
@@ -39,16 +39,16 @@ struct Header {
 };
 
 /// The body of an HTTP request.
-union Body {
+resource union Body {
     /// A buffer that will contain the complete request or response body.
     1: fuchsia.mem.Buffer buffer;
 
     /// A socket that will contain the streaming request or response body.
-    2: handle<socket> stream;
+    2: zx.handle:SOCKET stream;
 };
 
 /// An HTTP request.
-table Request {
+resource table Request {
     /// The HTTP method if applicable.
     ///
     /// Defaults to "GET".
@@ -89,13 +89,13 @@ table RedirectTarget {
 };
 
 /// A response to an HTTP request.
-table Response {
+resource table Response {
     /// If the response resulted in a network level error, this field will be
     /// set.
     1: Error error;
 
     /// The response body.
-    2: handle<socket> body;
+    2: zx.handle:SOCKET body;
 
     /// The final URL of the response, after redirects have been followed.
     3: fuchsia.url.Url final_url;

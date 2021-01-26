@@ -8,6 +8,10 @@
 #include <stdint.h>
 #include <zircon/compiler.h>
 
+#if __has_include(<time.h>)
+#include <time.h>
+#endif
+
 __BEGIN_CDECLS
 
 // absolute time in nanoseconds (generally with respect to the monotonic clock)
@@ -134,6 +138,33 @@ __CONSTEXPR static inline zx_duration_t zx_duration_from_min(int64_t n) {
 __CONSTEXPR static inline zx_duration_t zx_duration_from_hour(int64_t n) {
   return zx_duration_mul_int64(3600000000000, n);
 }
+
+#if __has_include(<time.h>)
+
+__CONSTEXPR static inline zx_duration_t zx_duration_from_timespec(struct timespec ts) {
+  return zx_duration_add_duration(zx_duration_from_sec(ts.tv_sec),
+                                  zx_duration_from_nsec(ts.tv_nsec));
+}
+
+__CONSTEXPR static inline struct timespec zx_timespec_from_duration(zx_duration_t duration) {
+  const struct timespec ts = {
+      (time_t)(duration / 1000000000),
+      (long int)(duration % 1000000000),
+  };
+  return ts;
+}
+
+__CONSTEXPR static inline zx_time_t zx_time_from_timespec(struct timespec ts) {
+  // implicit converstion of the return type (zx_time_t and zx_duration_t are the same)
+  return zx_duration_from_timespec(ts);
+}
+
+__CONSTEXPR static inline struct timespec zx_timespec_from_time(zx_time_t time) {
+  // implicit conversion of the parameter type (zx_time_t and zx_duration_t are the same)
+  return zx_timespec_from_duration(time);
+}
+
+#endif  // __has_include(<time.h>)
 
 // Similar to the functions above, these macros perform overflow-safe unit conversion. Prefer to use
 // the functions above instead of these macros.

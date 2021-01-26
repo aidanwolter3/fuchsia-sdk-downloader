@@ -73,6 +73,21 @@ fuchsia::ui::gfx::Command NewCreateImageCmd(uint32_t id, uint32_t memory_id, uin
   return NewCreateResourceCmd(id, std::move(resource));
 }
 
+fuchsia::ui::gfx::Command NewCreateImage2Cmd(uint32_t id, uint32_t width, uint32_t height,
+                                             uint32_t buffer_collection_id,
+                                             uint32_t buffer_collection_index) {
+  fuchsia::ui::gfx::ImageArgs2 image;
+  image.width = width;
+  image.height = height;
+  image.buffer_collection_id = buffer_collection_id;
+  image.buffer_collection_index = buffer_collection_index;
+
+  fuchsia::ui::gfx::ResourceArgs resource;
+  resource.set_image2(image);
+
+  return NewCreateResourceCmd(id, std::move(resource));
+}
+
 fuchsia::ui::gfx::Command NewCreateImagePipeCmd(
     uint32_t id, fidl::InterfaceRequest<fuchsia::images::ImagePipe> request) {
   fuchsia::ui::gfx::ImagePipeArgs image_pipe;
@@ -772,6 +787,14 @@ fuchsia::ui::gfx::Command NewSetDisplayColorConversionCmdHACK(
   return command;
 }
 
+fuchsia::ui::gfx::Command NewSetDisplayMinimumRgbCmdHACK(uint8_t minimum) {
+  fuchsia::ui::gfx::SetDisplayMinimumRgbCmdHACK minimum_cmd;
+  minimum_cmd.min_value = minimum;
+  fuchsia::ui::gfx::Command command;
+  command.set_set_display_minimum_rgb(minimum_cmd);
+  return command;
+}
+
 fuchsia::ui::gfx::Command NewSetDisplayRotationCmdHACK(uint32_t compositor_id,
                                                        uint32_t rotation_degrees) {
   fuchsia::ui::gfx::SetDisplayRotationCmdHACK display_rotation;
@@ -862,6 +885,17 @@ fuchsia::ui::gfx::Command NewSetHitTestBehaviorCmd(
 
   fuchsia::ui::gfx::Command command;
   command.set_set_hit_test_behavior(set_hit_test_behavior);
+
+  return command;
+}
+
+fuchsia::ui::gfx::Command NewSetSemanticVisibilityCmd(uint32_t node_id, bool visible) {
+  fuchsia::ui::gfx::SetSemanticVisibilityCmd set_semantic_visibility;
+  set_semantic_visibility.node_id = node_id;
+  set_semantic_visibility.visible = visible;
+
+  fuchsia::ui::gfx::Command command;
+  command.set_set_semantic_visibility(set_semantic_visibility);
 
   return command;
 }

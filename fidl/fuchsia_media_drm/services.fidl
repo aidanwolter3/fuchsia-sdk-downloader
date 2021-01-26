@@ -19,7 +19,6 @@ protocol KeySystem {
     ///
     /// - response `properties` the properties of the `KeySystem`
     ///   implementation.
-    [Transitional]
     GetProperties() -> (KeySystemProperties properties);
 
     /// Adds a client data store to the `KeySystem`.
@@ -36,23 +35,20 @@ protocol KeySystem {
     ///   added `data_store_id` and the server should close the channel.
     /// + request `data_store_params` the parameters to be used for this data
     ///   store.
-    [Transitional]
     AddDataStore(uint32 data_store_id,
                  DataStoreParams data_store_params) -> () error Error;
 
     /// Destroys the client data store.
     ///
     /// This method permanently removes this data store and all of its contents.
-    /// This means that all provisioning and license data will be removed and
-    /// any active [`ContentDecryptionModule`] using this data store will be
-    /// closed.
+    /// All provisioning and license data will be removed and any active
+    /// [`ContentDecryptionModule`] using this data store will be closed.
     ///
     /// + request `data_store_id` the client-assigned identifier for the data
     ///  store to be removed. It is invalid for the client to provide
     ///  [`NO_DATA_STORE`] or a `data_store_id` value that has not previously
-    ///  been added.
-    [Transitional]
-    DestroyDataStore(uint32 data_store_id);
+    ///  been added or has been previously destroyed.
+    DestroyDataStoreAndConfirm(uint32 data_store_id) -> ();
 
     /// Creates a new [`ContentDecryptionModule`].
     ///
@@ -66,15 +62,17 @@ protocol KeySystem {
     /// the `KeySystem` does not support data stores and one was provided, then
     /// the server should close the `cdm`.
     ///
+    /// If the `data_store_id` does not exist, the `cdm` will be closed with a
+    /// `ZX_ERR_NOT_FOUND` epitaph.
+    ///
     /// + request `data_store_id` the data store that should be used by the
     ///   `ContentDecryptionModule`.
     /// + request `cdm` the server endpoint of the `ContentDecryptionModule`.
-    [Transitional]
     CreateContentDecryptionModule2(uint32 data_store_id,
                                    request<ContentDecryptionModule> cdm);
 };
 
-table DataStoreParams {
+resource table DataStoreParams {
     /// Directory into which this data store should write persistent
     /// provisioning and licenses, or their proxy. This field is required.
     1: fuchsia.io.Directory data_directory;
@@ -90,7 +88,7 @@ table DataStoreParams {
     3: ProvisioningFetcher provisioning_fetcher;
 };
 
-// TODO(MTWN-394): Convert these protocols to services once available.
+// TODO(fxbug.dev/13674): Convert these protocols to services once available.
 
 /// A service hub providing access to the ClearKey key system. This key system
 /// is defined by the [`W3C Encrypted Media Extensions`]. It uses plain-text
@@ -104,14 +102,6 @@ table DataStoreParams {
 [Discoverable]
 protocol ClearKey {
     compose KeySystem;
-
-    /// Creates a new [`ContentDecryptionModule`].
-    ///
-    /// DEPRECATED: See [`KeySystem.CreateContentDecryptionModule2`] instead.
-    ///
-    /// + request `cdm` the server endpoint of the `ContentDecryptionModule`.
-    [Transitional, Deprecated]
-    CreateContentDecryptionModule(request<ContentDecryptionModule> cdm);
 };
 
 /// A service hub providing access to the Widevine key system.
@@ -121,27 +111,6 @@ protocol ClearKey {
 [Discoverable]
 protocol Widevine {
     compose KeySystem;
-
-    /// Creates a new [`ContentDecryptionModule`].
-    ///
-    /// The `ContentDecryptionModule`s created will share their persistent
-    /// state, but will not share active sessions.
-    ///
-    /// DEPRECATED: See [`KeySystem.CreateContentDecryptionModule2`] instead.
-    ///
-    /// + request `cdm` the server endpoint of the `ContentDecryptionModule`.
-    [Transitional, Deprecated]
-    CreateContentDecryptionModule(request<ContentDecryptionModule> cdm);
-
-    /// Creates a new [`Provisioner`].
-    ///
-    /// There can only be one active `Provisioner` for each service instance.
-    ///
-    /// DEPRECATED: See [`KeySystem.AddDataStore`] instead.
-    ///
-    /// + request `provisioner` the server endpoint of the `Provisioner`.
-    [Transitional, Deprecated]
-    CreateProvisioner(request<Provisioner> provisioner);
 };
 
 /// A service hub providing access to the PlayReady key system.
@@ -151,15 +120,4 @@ protocol Widevine {
 [Discoverable]
 protocol PlayReady {
     compose KeySystem;
-
-    /// Creates a new [`ContentDecryptionModule`].
-    ///
-    /// The `ContentDecryptionModule`s created will share their persistent
-    /// state, but will not share active sessions.
-    ///
-    /// DEPRECATED: See [`KeySystem.CreateContentDecryptionModule2`] instead.
-    ///
-    /// + request `cdm` the server endpoint of the `ContentDecryptionModule`.
-    [Transitional, Deprecated]
-    CreateContentDecryptionModule(request<ContentDecryptionModule> cdm);
 };

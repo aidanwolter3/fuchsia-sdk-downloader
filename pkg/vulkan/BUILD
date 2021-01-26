@@ -24,7 +24,6 @@ cc_library(
     deps = fuchsia_select({
         "//build_defs/target_cpu:x64": [":x64_prebuilts"],
     }) + [
-        "//pkg/async_default",
         "//pkg/fdio",
     ],
     strip_include_prefix = "include",

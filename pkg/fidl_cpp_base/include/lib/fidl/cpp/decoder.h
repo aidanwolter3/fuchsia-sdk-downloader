@@ -9,6 +9,7 @@
 #include <zircon/fidl.h>
 
 #ifdef __Fuchsia__
+#include <lib/zx/handle.h>
 #include <lib/zx/object.h>
 #endif
 
@@ -16,25 +17,40 @@ namespace fidl {
 
 class Decoder final {
  public:
-  explicit Decoder(Message message);
+  explicit Decoder(HLCPPIncomingMessage message);
   ~Decoder();
 
   template <typename T>
   T* GetPtr(size_t offset) {
-    return reinterpret_cast<T*>(InternalGetPtr(offset));
+    return reinterpret_cast<T*>(message_.bytes().data() + offset);
   }
 
-  size_t GetOffset(void* ptr);
-  size_t GetOffset(uintptr_t ptr);
+  size_t GetOffset(void* ptr) { return GetOffset(reinterpret_cast<uintptr_t>(ptr)); }
+  size_t GetOffset(uintptr_t ptr) {
+    // The |ptr| value comes from the message buffer, which we've already
+    // validated. That means it should correspond to a valid offset within the
+    // message.
+    return ptr - reinterpret_cast<uintptr_t>(message_.bytes().data());
+  }
 
 #ifdef __Fuchsia__
-  void DecodeHandle(zx::object_base* value, size_t offset);
+  void DecodeHandle(zx::object_base* value, size_t offset) {
+    zx_handle_t* handle = GetPtr<zx_handle_t>(offset);
+    value->reset(*handle);
+    *handle = ZX_HANDLE_INVALID;
+    if (value->is_valid()) {
+      ++handle_index_;
+    }
+  }
+
+  zx::handle ClaimHandle() { return zx::handle(message_.handles().data()[handle_index_++]); }
 #endif
 
  private:
-  uint8_t* InternalGetPtr(size_t offset);
-
-  Message message_;
+  HLCPPIncomingMessage message_;
+#ifdef __Fuchsia__
+  uint32_t handle_index_ = 0;
+#endif
 };
 
 }  // namespace fidl

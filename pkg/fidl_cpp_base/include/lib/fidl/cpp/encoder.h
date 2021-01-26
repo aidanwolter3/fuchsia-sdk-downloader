@@ -33,11 +33,21 @@ class Encoder final {
     return reinterpret_cast<T*>(bytes_.data() + offset);
   }
 
+  template <typename T>
+  const T* GetPtr(size_t offset) const {
+    return reinterpret_cast<const T*>(bytes_.data() + offset);
+  }
+
 #ifdef __Fuchsia__
   void EncodeHandle(zx::object_base* value, size_t offset);
+
+  // Add a handle to the encoder's handles without encoding it into the bytes.
+  // This is used to re-encode unknown handles, since their "encoded form" is
+  // already in the unknown bytes somewhere.
+  void EncodeUnknownHandle(zx::object_base* value);
 #endif
 
-  Message GetMessage();
+  HLCPPOutgoingMessage GetMessage();
 
   void Reset(uint64_t ordinal);
 

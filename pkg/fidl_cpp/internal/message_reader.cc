@@ -150,7 +150,7 @@ zx_status_t MessageReader::WaitAndDispatchOneMessageUntil(zx::time deadline) {
   }
 
   if (pending & ZX_CHANNEL_READABLE) {
-    MessageBuffer buffer;
+    IncomingMessageBuffer buffer;
     return ReadAndDispatchMessage(&buffer);
   }
 
@@ -174,7 +174,7 @@ void MessageReader::OnHandleReady(async_dispatcher_t* dispatcher, zx_status_t st
   }
 
   if (signal->observed & ZX_CHANNEL_READABLE) {
-    MessageBuffer buffer;
+    IncomingMessageBuffer buffer;
     for (uint64_t i = 0; i < signal->count; i++) {
       status = ReadAndDispatchMessage(&buffer);
       // If ReadAndDispatchMessage returns ZX_ERR_STOP, that means the message
@@ -198,8 +198,8 @@ void MessageReader::OnHandleReady(async_dispatcher_t* dispatcher, zx_status_t st
   NotifyError(ZX_ERR_PEER_CLOSED);
 }
 
-zx_status_t MessageReader::ReadAndDispatchMessage(MessageBuffer* buffer) {
-  Message message = buffer->CreateEmptyMessage();
+zx_status_t MessageReader::ReadAndDispatchMessage(IncomingMessageBuffer* buffer) {
+  HLCPPIncomingMessage message = buffer->CreateEmptyIncomingMessage();
   zx_status_t status = message.Read(channel_.get(), 0);
   if (status == ZX_ERR_SHOULD_WAIT)
     return status;
@@ -218,7 +218,7 @@ zx_status_t MessageReader::ReadAndDispatchMessage(MessageBuffer* buffer) {
     // error handlers should be invoked. Note the epitaph error is stored as a
     // struct{int32} in the message payload
 
-    // TODO(FIDL-322): Use a different error code to distinguish remote encoding
+    // TODO(fxbug.dev/7658): Use a different error code to distinguish remote encoding
     // errors from local ones.
     if (message.bytes().actual() != sizeof(fidl_epitaph_t)) {
       NotifyError(ZX_ERR_INVALID_ARGS);

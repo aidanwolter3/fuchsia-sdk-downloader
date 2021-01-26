@@ -153,7 +153,7 @@ namespace fit {
 // complicated continuation types that are hard to describe, often consisting of
 // nested templates and lambdas.  These are referred to as "unboxed"
 // promises.  In contrast, "boxed" promises are parameterized by a
-// a |fit::function| that hides (or "erases") the type of the continuation
+// |fit::function| that hides (or "erases") the type of the continuation
 // thereby yielding type that is easier to describe.
 //
 // You can recognize boxed and unboxed promises by their types.
@@ -283,9 +283,9 @@ namespace fit {
 // EXAMPLE
 //
 // -
-// https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/utest/fit/examples/promise_example1.cc
+// https://fuchsia.googlesource.com/fuchsia/+/HEAD/zircon/system/utest/fit/examples/promise_example1.cc
 // -
-// https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/utest/fit/examples/promise_example2.cc
+// https://fuchsia.googlesource.com/fuchsia/+/HEAD/zircon/system/utest/fit/examples/promise_example2.cc
 //
 template <typename V = void, typename E = void>
 using promise = promise_impl<function<result<V, E>(fit::context&)>>;
@@ -1037,7 +1037,7 @@ enum class future_state {
 // EXAMPLE
 //
 // -
-// https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/utest/fit/examples/promise_example2.cc
+// https://fuchsia.googlesource.com/fuchsia/+/HEAD/zircon/system/utest/fit/examples/promise_example2.cc
 template <typename V = void, typename E = void>
 using future = future_impl<promise<V, E>>;
 
@@ -1410,7 +1410,7 @@ class context {
   // Converts this context to a derived context type.
   template <typename Context, typename = std::enable_if_t<std::is_base_of<context, Context>::value>>
   Context& as() & {
-    // TODO(CP-163): We should perform a run-time type check here rather
+    // TODO(fxbug.dev/4060): We should perform a run-time type check here rather
     // than blindly casting.  That's why this method exists.
     return static_cast<Context&>(*this);
   }

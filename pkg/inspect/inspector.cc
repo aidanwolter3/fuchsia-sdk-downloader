@@ -22,7 +22,9 @@ const InspectSettings kDefaultInspectSettings = {.maximum_size = 256 * 1024};
 Inspector::Inspector() : Inspector(kDefaultInspectSettings) {}
 
 Inspector::Inspector(const InspectSettings& settings)
-    : root_(std::make_shared<Node>()), value_list_(std::make_shared<ValueList>()) {
+    : root_(std::make_shared<Node>()),
+      value_list_(std::make_shared<ValueList>()),
+      value_mutex_(std::make_shared<std::mutex>()) {
   if (settings.maximum_size == 0) {
     return;
   }
@@ -84,6 +86,13 @@ std::vector<uint8_t> Inspector::CopyBytes() const {
   std::vector<uint8_t> ret;
   state_->CopyBytes(&ret);
   return ret;
+}
+
+InspectStats Inspector::GetStats() const {
+  if (!state_) {
+    return InspectStats{};
+  }
+  return state_->GetStats();
 }
 
 Node& Inspector::GetRoot() const { return *root_; }

@@ -8,9 +8,21 @@ using fuchsia.math;
 using fuchsia.sysmem;
 using zx;
 
+const uint32 MAX_RESOLUTIONS_PER_STREAM = 256;
+
 /// A Stream represents timing, sequencing, and other camera-specific properties applied to a buffer
 /// collection.
 protocol Stream {
+    /// Gets the properties associated with this stream. The value returned is identical to the one
+    /// corresponding to this stream as returned by |Device.GetConfigurations|.
+    [Transitional, Deprecated = "Use GetProperties2"]
+    GetProperties() -> (StreamProperties properties);
+
+    /// Gets the properties associated with this stream. The value returned is identical to the one
+    /// corresponding to this stream as returned by |Device.GetConfigurations|.
+    [Transitional]
+    GetProperties2() -> (StreamProperties2 properties);
+
     /// Sets the Stream's crop region to the provided region, with the top-left of the image
     /// represented by (0,0) and the bottom-right of the image represented by (1,1). The resulting
     /// content is subsequently scaled to fill the output buffer. If the implementation does not
@@ -54,20 +66,27 @@ protocol Stream {
     /// the new orientation.
     WatchOrientation() -> (Orientation orientation);
 
-    /// Request the next available frame for this stream. Returns when the stream has completed
-    /// populating the buffer and may be read by the client, provided the number of unreleased
-    /// buffers held by the client is less than the count provided via the most recently negotiated
-    /// buffer collection token. If a buffer renegotiation is in progress, this call will return
-    /// only after the negotiation is complete and a new collection is available.
+    /// See GetNextFrame2.
+    [Transitional, Deprecated = "Use GetNextFrame2"]
     GetNextFrame() -> (FrameInfo info);
 
+    /// Request the next available frame for this stream that has not yet been acquired by the
+    /// current client. Multiple participating clients may concurrently hold the same frame. Returns
+    /// when the stream has completed populating the buffer and may be read by the client, provided
+    /// the number of unreleased buffers is less than the count provided via the most recently
+    /// negotiated buffer collection token. If a buffer renegotiation is in progress, this call will
+    /// return only after the negotiation is complete and a new collection is available.
+    [Transitional]
+    GetNextFrame2() -> (FrameInfo2 info);
+
     /// Request another connection to this Stream. This allows a client to delegate different
-    /// operations to different coordinated clients.
+    /// operations to different coordinated clients, or have multiple clients concurrently observe
+    /// frames produced by the stream.
     Rebind(request<Stream> request);
 };
 
 /// Metadata concerning a given frame.
-struct FrameInfo {
+resource struct FrameInfo {
     /// Identifies the buffer used for this frame as an index into the most recently negotiated
     /// buffer collection.
     uint32 buffer_index;
@@ -82,7 +101,30 @@ struct FrameInfo {
     zx.time timestamp;
 
     /// The client must close this when it has completed reading from the buffer.
-    handle<eventpair> release_fence;
+    zx.handle:EVENTPAIR release_fence;
+};
+
+/// Metadata concerning a given frame.
+resource table FrameInfo2 {
+    /// Identifies the buffer used for this frame as an index into the most recently negotiated
+    /// buffer collection.
+    1: uint32 buffer_index;
+
+    /// A monotonically increasing counter indicating the number of frames written to this stream's
+    /// most recently negotiated buffer collection. Clients can use this to detect dropped frames
+    /// or generate nominal timestamps using the associated stream's framerate.
+    2: uint64 frame_counter;
+
+    /// The value of the system monotonic clock, measured at the time the hardware completed
+    /// populating the buffer.
+    3: zx.time timestamp;
+
+    /// The value of the system monotonic clock, measured at the time the hardware completed
+    /// populating the original buffer used to derive the contents of this buffer.
+    4: zx.time capture_timestamp;
+
+    /// The client must close this when it has completed reading from the buffer.
+    5: zx.handle:EVENTPAIR release_fence;
 };
 
 /// The frequency at which a Stream produces frames. The value is `numerator` / `denominator`, with
@@ -105,6 +147,24 @@ struct StreamProperties {
 
     /// Indicates whether a stream supports the SetCropRegion method.
     bool supports_crop_region;
+};
+
+/// Describes the properties of a given stream.
+table StreamProperties2 {
+    /// Describes the native image format used by a stream.
+    1: fuchsia.sysmem.ImageFormat_2 image_format;
+
+    /// Describes the framerate used by a stream.
+    2: FrameRate frame_rate;
+
+    /// Indicates whether a stream supports the SetCropRegion method.
+    3: bool supports_crop_region;
+
+    /// Describes the precise resolutions supported by a stream, i.e. those for which SetResolution
+    /// results in a WatchResolution callback of the same value. If empty, it indicates that the
+    /// stream supports arbitrary resolutions. If non-empty, the list contains at least one element
+    /// reflecting the native resolution specified by |image_format|.
+    4: vector<fuchsia.math.Size>:MAX_RESOLUTIONS_PER_STREAM supported_resolutions;
 };
 
 /// Describes the intended orientation of a given stream relative to its encoded data. For clarity,

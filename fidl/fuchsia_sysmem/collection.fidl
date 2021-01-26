@@ -13,7 +13,7 @@ using zx;
 /// We use a channel for the BufferCollectionToken instead of a single eventpair
 /// (pair) because this way we can detect error conditions like a participant
 /// dying mid-create.
-[Discoverable, Layout = "Simple"]
+[Discoverable, ForDeprecatedCBindings]
 protocol BufferCollectionToken {
     /// The initiator or a participant can send Duplicate() as part of creating
     /// another participant-side handle to the same logical
@@ -120,6 +120,26 @@ protocol BufferCollectionToken {
     /// Normally an unexpected token channel close will cause
     /// LogicalBufferCollection failure.
     Close();
+
+    /// Set a name for VMOs in this buffer collection. The name may be truncated shorter. The name
+    /// only affects VMOs allocated after it's set - this call does not rename existing VMOs. If
+    /// multiple clients set different names then the larger priority value will win.
+    [Transitional]
+    SetName(uint32 priority, string:64 name);
+
+    /// Set information about the current client that can be used by sysmem to
+    /// help debug leaking memory and hangs waiting for constraints. |name| can
+    /// be an arbitrary string, but the current process name (see
+    /// fsl::GetCurrentProcessName()) is a good default. |id| can be an arbitrary
+    /// id, but the current process ID (see fsl::GetCurrentProcessKoid()) is a
+    /// good default.
+    SetDebugClientInfo(string:64 name, uint64 id);
+
+    /// Sysmem logs a warning if not all clients have set constraints 5 seconds
+    /// after creating a collection. Clients can call this method to change
+    /// when the log is printed. If multiple client set the deadline, it's
+    /// unspecified which deadline will take effect.
+    SetDebugTimeoutLogDeadline(zx.time deadline);
 };
 
 /// BufferCollection is a connection directly from a participant to sysmem re.
@@ -150,7 +170,7 @@ protocol BufferCollectionToken {
 /// memory fragmentation and avoid overlap of buffer allocation lifetimes for
 /// the old and new collections. Collections can be large enough that it's worth
 /// avoiding allocation overlap (in time).
-[Discoverable, Layout = "Simple"]
+[Discoverable, ForDeprecatedCBindings]
 protocol BufferCollection {
     /// At least for now, the only way to get events from a BufferCollection is
     /// to set a reverse BufferCollectionEvents channel.  This can be sent up to
@@ -297,13 +317,59 @@ protocol BufferCollection {
     /// BufferCollection channel.  If this is the last BufferCollection view, the
     /// LogicalBufferCollection will still go away.
     Close();
+
+    /// Set a name for VMOs in this buffer collection. The name may be truncated shorter. The name
+    /// only affects VMOs allocated after it's set - this call does not rename existing VMOs. If
+    /// multiple clients set different names then the larger priority value will win.
+    SetName(uint32 priority, string:64 name);
+
+    /// See BufferCollectionToken.SetClientDebugInfo.
+    SetDebugClientInfo(string:64 name, uint64 id);
+
+    /// Optionally sent before SetConstraints() to set constraints related to
+    /// clear (not encrypted, not in protected/secure memory) aux buffers.  This
+    /// is only valid when sent before SetConstraints().  Invalid settings may
+    /// not result in channel closure until SetConstraints() is received by
+    /// sysmem.
+    SetConstraintsAuxBuffers(
+        BufferCollectionConstraintsAuxBuffers constraints);
+
+    /// Allows getting any aux buffers allocated after using
+    /// SetConstraintsAuxBuffers().
+    ///
+    /// Sending this message is not permitted until at least one of the
+    /// following has occurred:
+    ///   * WaitForBuffersAllocated() completing
+    ///   * OnBuffersAllocated() being received
+    ///
+    /// On failure, status will be a failing status and
+    /// buffer_collection_info_aux_buffers won't be filled out, and won't have
+    /// any handles.
+    ///
+    /// On success, status will be ZX_OK, and buffer_count will be the same as
+    /// the main buffer_count from WaitForBuffersAllocated() or
+    /// OnBuffersAllocated().
+    ///
+    /// If a participant specified "allow_clear_aux_buffers_for_secure" true but
+    /// "need_clear_aux_buffers_for_secure" false (or not set), the participant
+    /// can determine if aux buffers were allocated by looking at buffer[0].vmo.
+    /// If buffer 0 has no vmo, aux VMOs were not allocated.  The resulting
+    /// status will still be ZX_OK in this case, and buffer_count will still be
+    /// filled out to match the main buffer_count.
+    ///
+    /// It's legal for a participant that set
+    /// "allow_clear_aux_buffers_for_secure" false to call GetAuxBuffers(), in
+    /// which case buffer[0].vmo will not be set.
+    GetAuxBuffers()
+        -> (zx.status status,
+            BufferCollectionInfo_2 buffer_collection_info_aux_buffers);
 };
 
 /// This interface intentionally doesn't include any event for
 /// OnOldBufferClosed(), because such an event could arrive at a participant too
 /// soon to be useful.  Instead, such an indication should be made in-band within
 /// FIDL interfaces that deliver packets to downstream participants.
-[Discoverable, Layout = "Simple"]
+[Discoverable, ForDeprecatedCBindings]
 protocol BufferCollectionEvents {
     /// See comments on BufferCollectionToken::Sync().
     ///

@@ -21,12 +21,14 @@ fidl_library(
         "device.fidl",
         "display.fidl",
         "do_not_disturb.fidl",
+        "factory_reset.fidl",
+        "input.fidl",
         "intl.fidl",
+        "light.fidl",
         "night_mode.fidl",
         "privacy.fidl",
         "settings.fidl",
         "setup.fidl",
-        "system.fidl",
     ],
     deps = [
         "//fidl/fuchsia_intl",
@@ -40,7 +42,7 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_settings_cc",
     library = ":fuchsia_settings",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
         "//fidl/fuchsia_intl:fuchsia_intl_cc",

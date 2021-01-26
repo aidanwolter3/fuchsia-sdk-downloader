@@ -28,7 +28,7 @@ struct mat4 {
 };
 
 /// sRGB color space and nonlinear transfer function.
-// TODO(SCN-238): use float32s instead of uint8.
+// TODO(fxbug.dev/23484): use float32s instead of uint8.
 struct ColorRgba {
     uint8 red;
     uint8 green;
@@ -202,9 +202,15 @@ struct Metrics {
     float32 scale_z;
 };
 
-/// Represents an axis-aligned bounding box.  If any of the dimensions has a
-/// negative extent (e.g. max.x < min.x) then the bounding box is treated as
-/// empty.
+/// Represents an axis-aligned bounding box.
+///
+/// If any of the dimensions has a negative extent (e.g. max.x < min.x) then the
+/// bounding box is treated as empty. It is valid for a client to define an
+/// empty bounding box.
+///
+/// An "empty bounding box" is one that does not admit a point inhabitant.
+/// Note that a zero-volume, zero-area bounding box (e.g., a point like
+/// (0,0,0)-(0,0,0), or a line like (0,0,0)-(1,0,0)) is thus not empty.
 struct BoundingBox {
     vec3 min;
     vec3 max;
@@ -216,7 +222,7 @@ struct ViewProperties {
     ///    { bounding_box.min + inset_from_min, bounding_box.max - inset_from_max }
     /// Content contained within the View is clipped to this bounding box.
     ///
-    // TODO(SCN-819): should we just have a vec3 extent instead of a bounding box
+    // TODO(fxbug.dev/24037): should we just have a vec3 extent instead of a bounding box
     // with a potentially non-zero min?
     BoundingBox bounding_box;
 
@@ -233,7 +239,7 @@ struct ViewProperties {
     /// Whether the View allows geometrically underlying Views to receive input;
     /// default is true. When false, Scenic does not send input events to
     /// underlying Views.
-    // TODO(SCN-1513): not implemented yet.
+    // TODO(fxbug.dev/24695): not implemented yet.
     bool downward_input = true;
 };
 

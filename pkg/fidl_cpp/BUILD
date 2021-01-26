@@ -25,7 +25,6 @@ cc_library(
     hdrs = [
         "include/lib/fidl/cpp/binding.h",
         "include/lib/fidl/cpp/binding_set.h",
-        "include/lib/fidl/cpp/enum.h",
         "include/lib/fidl/cpp/event_sender.h",
         "include/lib/fidl/cpp/interface_ptr.h",
         "include/lib/fidl/cpp/interface_ptr_set.h",
@@ -50,7 +49,6 @@ cc_library(
         "//pkg/async",
         "//pkg/async_default",
         "//pkg/fidl",
-        "//pkg/fidl_async",
         "//pkg/fidl_cpp_sync",
         "//pkg/fit",
         "//pkg/zx",

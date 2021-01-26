@@ -28,6 +28,8 @@ cc_library(
         "//build_defs/target_cpu:x64": [":x64_prebuilts"],
     }) + [
         "//pkg/async",
+        "//pkg/async_default",
+        "//pkg/fdio",
         "//pkg/trace_engine",
         "//pkg/zx",
     ],

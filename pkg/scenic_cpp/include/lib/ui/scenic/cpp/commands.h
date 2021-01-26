@@ -32,6 +32,9 @@ fuchsia::ui::gfx::Command NewCreateMemoryCmd(uint32_t id, zx::vmo vmo, uint64_t 
                                              fuchsia::images::MemoryType memory_type);
 fuchsia::ui::gfx::Command NewCreateImageCmd(uint32_t id, uint32_t memory_id, uint32_t memory_offset,
                                             fuchsia::images::ImageInfo info);
+fuchsia::ui::gfx::Command NewCreateImage2Cmd(uint32_t id, uint32_t width, uint32_t height,
+                                             uint32_t buffer_collection_id,
+                                             uint32_t buffer_collection_index);
 fuchsia::ui::gfx::Command NewCreateImageCmd(uint32_t id, uint32_t memory_id, uint32_t memory_offset,
                                             fuchsia::images::PixelFormat format,
                                             fuchsia::images::ColorSpace color_space,
@@ -155,6 +158,7 @@ fuchsia::ui::gfx::Command NewSetClipPlanesCmd(uint32_t node_id,
 fuchsia::ui::gfx::Command NewSetTagCmd(uint32_t node_id, uint32_t tag_value);
 fuchsia::ui::gfx::Command NewSetHitTestBehaviorCmd(
     uint32_t node_id, fuchsia::ui::gfx::HitTestBehavior hit_test_behavior);
+fuchsia::ui::gfx::Command NewSetSemanticVisibilityCmd(uint32_t node_id, bool visibility);
 
 // Display Commands.
 fuchsia::ui::gfx::Command NewSetEnableDebugViewBoundsCmd(uint32_t view_id, bool enable);
@@ -164,6 +168,8 @@ fuchsia::ui::gfx::Command NewSetViewHolderBoundsColorCmd(uint32_t view_holder_id
 fuchsia::ui::gfx::Command NewSetDisplayColorConversionCmdHACK(
     uint32_t compositor_id, const std::array<float, 3>& preoffsets,
     const std::array<float, 3 * 3>& matrix, const std::array<float, 3>& postoffsets);
+
+fuchsia::ui::gfx::Command NewSetDisplayMinimumRgbCmdHACK(uint8_t minimum);
 
 fuchsia::ui::gfx::Command NewSetDisplayRotationCmdHACK(uint32_t compositor_id,
                                                        uint32_t rotation_degrees);

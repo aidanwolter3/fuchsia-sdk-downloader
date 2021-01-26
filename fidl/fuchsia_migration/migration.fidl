@@ -29,12 +29,12 @@ protocol CastProvider {
 };
 
 [Discoverable]
-protocol KronkProvider {
+protocol DisplayProvider {
     compose Provider;
 };
 
 [Discoverable]
-protocol DisplayProvider {
+protocol KronkProvider {
     compose Provider;
 };
 

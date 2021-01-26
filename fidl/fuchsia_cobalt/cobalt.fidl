@@ -50,14 +50,8 @@ const uint32 MAX_COMPONENT_LENGTH = 64;
 /// Timer ids should not be longer than this.
 const uint32 MAX_TIMER_ID_LENGTH = 64;
 
-/// String events should not be longer than this.
-const uint32 MAX_STRING_EVENT_SIZE = 256;
-
 /// We only support up to 5 event_codes
 const uint32 MAX_EVENT_CODE_COUNT = 5;
-
-/// In Cobalt 1.1 we support up to 10 event codes.
-const uint32 MAX_METRIC_DIMENSIONS = 10;
 
 /// Channels should not be longer than this.
 const uint32 MAX_CHANNEL_NAME_LENGTH = 256;
@@ -80,37 +74,16 @@ enum Status : int32 {
     /// Events at this time. Try again later. This condition should be rare
     BUFFER_FULL = 3;
 
+    // Cobalt has received a ShutDown signal and will not accept any more
+    // events.
+    SHUT_DOWN = 4;
+
     /// Catch-all for unexpected errors.
     INTERNAL_ERROR = -1;
 };
 
-/// A specification of a Cobalt project.
-///
-/// Note: This type is part of the Cobalt 1.1 interface which is still
-/// in development. Do not use this yet.
-table ProjectSpec {
-    /// The customer ID, as specified in Cobalt's metrics registry.
-    /// If omitted (i.e. set to 0) then it defaults to
-    /// the customer ID for the "fuchsia" customer.
-    1: uint32 customer_id;
-
-    /// The ID of the project, as specified in Cobalt's metrics registry.
-    2: uint32 project_id;
-};
-
-/// Note: This protocol is part of the Cobalt 1.1 interface which is still
-/// in development. Do not use this yet.
-///
-[Discoverable]
-protocol MetricEventLoggerFactory {
-    /// Create a MetricEventLogger for the project specified by `project_spec`.
-    CreateMetricEventLogger(ProjectSpec project_spec,
-                            request<MetricEventLogger> logger)
-        -> (Status status);
-};
-
 /// LoggerFactory creates Loggers.
-[Discoverable, Layout = "Simple"]
+[Discoverable, ForDeprecatedCBindings]
 protocol LoggerFactory {
     /// Creates a Logger for the project with the given ID, using the state of
     /// the metrics registry that is bundled with Cobalt. The project must be in
@@ -118,9 +91,10 @@ protocol LoggerFactory {
     ///
     /// `project_id` The ID of the client's Cobalt project.
     ///
-    /// `status` Returns OK on success or INVALID_ARGUMENTS if there is no
-    /// project with the given ID in the version of the metrics registry that
-    /// is bundled with Cobalt.
+    /// `status` Returns OK on success, SHUT_DOWN if the factory is no longer
+    /// creating new loggers, or INVALID_ARGUMENTS if there is no project with
+    /// the given ID in the version of the metrics registry that is bundled
+    /// with Cobalt.
     CreateLoggerFromProjectId(uint32 project_id,
                               request<Logger> logger)
         -> (Status status);
@@ -153,141 +127,6 @@ protocol LoggerFactory {
         -> (Status status);
 };
 
-/// A vector of event codes. When used in one of the Log*() calls below,
-/// there must be one event code for each dimension of the metric whose
-/// metric_id is supplied, or else the call will return INVALID_ARGUMENTS.
-/// Each event code is a key from the `event_codes` map of the corresponding
-/// MetricDimension.
-///
-/// This type is part of the Cobalt 1.1 interface which is still in development.
-/// Do not use this yet.
-using event_vector = vector<uint32>:MAX_METRIC_DIMENSIONS;
-
-/// A histogram that assigns a count to each of several integer ranges.
-/// The order of the vector is immaterial.
-using integer_histogram = vector<HistogramBucket>:MAX_HISTOGRAM_BUCKETS;
-
-/// Note: This protocol is part of the Cobalt 1.1 interface which is still
-/// in development. Do not use this yet.
-protocol MetricEventLogger {
-    /// Logs the fact that an event has occurred a number of times.
-    ///
-    /// `metric_id` ID of the metric being logged. It must be one of the metrics
-    /// declared in Cobalt's registry for the project associated with this
-    /// logger, and it must be of type OCCURRENCE.
-    ///
-    /// `count` The number of times the event has occurred. The value should
-    /// be positive as a value of 0 is ignored.
-    ///
-    /// `event_codes`. Enum parameters, one for each of the metric's
-    /// metric_dimensions. Cobalt aggregates occurrence counts based on this
-    /// parameter.
-    LogOccurrence(uint32 metric_id, uint64 count, event_vector event_codes)
-        -> (Status status);
-
-    /// Logs an integer measurement.
-    ///
-    /// `metric_id` ID of the metric being logged. It must be one of the metrics
-    /// declared in Cobalt's registry for the project associated with this
-    /// logger, and it must be of type INTEGER.
-    ///
-    /// `value` The integer measurement.
-    ///
-    /// `event_codes`. Enum parameters, one for each of the metric's
-    /// metric_dimensions. Cobalt aggregates integer values that have
-    /// the same event_codes.
-    LogInteger(uint32 metric_id, int64 value, event_vector event_codes)
-        -> (Status status);
-
-    /// Logs a histogram giving many approximate integer measurements.
-    ///
-    /// `metric_id` ID of the metric being logged. It must be one of the metrics
-    /// declared in Cobalt's registry for the project associated with this
-    /// logger, and it must be of type INTEGER_HISTOGRAM.
-    ///
-    /// `histogram` The collection of approximate integer measurements.
-    ///
-    /// `event_codes`. Enum parameters, one for each of the metric's
-    /// metric_dimensions. Cobalt aggregates histograms that have the same
-    /// event_codes.
-    LogIntegerHistogram(uint32 metric_id, integer_histogram histogram,
-                        event_vector event_codes)
-        -> (Status status);
-
-    /// Logs a string value that was observed.
-    ///
-    /// `metric_id` ID of the metric being logged. It must be one of the metrics
-    /// declared in Cobalt's registry for the project associated with this
-    /// logger, and it must be of type STRING.
-    ///
-    /// `string_value` The string to log.
-    ///
-    /// `event_codes`. Enum parameters, one for each of the metric's
-    /// metric_dimensions. Cobalt aggregates counts of logged strings separately
-    /// for each event_codes.
-    LogString(uint32 metric_id, string:MAX_STRING_EVENT_SIZE string_value,
-              event_vector event_codes)
-        -> (Status status);
-
-    /// Bulk logging method, equivalent to making many of the above Log*() calls
-    /// at once.
-    LogMetricEvents(vector<MetricEvent>:MAX_BATCHED_EVENTS events)
-        -> (Status status);
-
-    /// Logs a custom Event.
-    ///
-    /// `metric_id` ID of the metric being logged. It must be one of the metrics
-    /// declared in Cobalt's registry for the project associated with this
-    /// logger, and it must be of type CUSTOM.
-    ///
-    /// `event_values` The values for the custom Event. There must be one value
-    /// for each dimension of the Metric and the types of the values must
-    /// be consistent with the dimensions declared in the Metric definition.
-    LogCustomEvent(uint32 metric_id, vector<CustomEventValue>:MAX event_values)
-        -> (Status status);
-};
-
-/// A specification of an event that occurred to be passed to LogMetricEvents().
-///
-/// Note: This type is part of the Cobalt 1.1 interface which is still
-/// in development. Do not use this yet.
-struct MetricEvent {
-    /// ID of the metric being logged. It must be one of the metrics
-    /// declared in Cobalt's registry for the project associated with the
-    /// MetricEventLogger being used and its type must match the type of
-    /// `payload`.
-    uint32 metric_id;
-
-    /// `event_codes`. Enum parameters corresponding to the metric's additional
-    /// dimensions.
-    event_vector event_codes;
-
-    /// The metric-type-specific data for the event being logged.
-    MetricEventPayload payload;
-};
-
-/// The variadic part of a MetricEvent.
-///
-/// Note: This type is part of the Cobalt 1.1 interface which is still
-/// in development. Do not use this yet.
-flexible union MetricEventPayload {
-    /// This should be used for metrics of type OCCURRENCE. See
-    /// MetricEventLogger::LogOcurrenceCount().
-    1: uint64 count;
-
-    /// This should be used for metrics of type INTEGER. See
-    /// MetricEventLogger::LogInteger().
-    2: int64 integer_value;
-
-    /// This payload type should be used for metrics of type
-    /// INTEGER_HISTOGRAM. See
-    /// MetricEventLogger::LogIntegerHistogram().
-    3: integer_histogram histogram;
-
-    /// This payload type should be used for metrics of type STRING.
-    4: string:MAX_STRING_EVENT_SIZE string_value;
-};
-
 /////////////////////////////////////////////////////////////////////
 
 // LoggerBase Interface
@@ -306,7 +145,7 @@ flexible union MetricEventPayload {
 /// This interface conforms to the Simple layout so that Simple bindings
 /// may be generated for it. For the full interfaces, see Logger and LoggerSimple
 /// below.
-[Layout = "Simple"]
+[ForDeprecatedCBindings]
 protocol LoggerBase {
     /// Logs the fact that an event has occurred.
     ///
@@ -693,7 +532,7 @@ protocol Logger {
 ///
 /// This interface conforms to the Simple layout so that Simple bindings
 /// may be generated for it.
-[Layout = "Simple"]
+[ForDeprecatedCBindings]
 protocol LoggerSimple {
     compose LoggerBase;
 
@@ -751,15 +590,9 @@ protocol SystemDataUpdater {
     SetExperimentState(vector<Experiment>:MAX experiments)
         -> (Status status);
 
-    /// Sets Cobalt's view of the system-wide channel replacing the existing values.
-    ///
-    /// `current_channel` The channel that the device last used as an update source. This value may
-    /// be empty to indicate that the device is not currently associated with any channel.
-    SetChannel(string:MAX_CHANNEL_NAME_LENGTH current_channel) -> (Status status);
-
     /// Sets Cobalt's view of the system-wide distribution information replacing the
     /// existing values.
     ///
     /// `info` The specifications of the current system's software distribution.
-    [Transitional] SetSoftwareDistributionInfo(SoftwareDistributionInfo info) -> (Status status);
+    SetSoftwareDistributionInfo(SoftwareDistributionInfo info) -> (Status status);
 };

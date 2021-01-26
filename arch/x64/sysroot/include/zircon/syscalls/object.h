@@ -12,40 +12,44 @@ __BEGIN_CDECLS
 // ask clang format not to mess up the indentation:
 // clang-format off
 
+// Help macro for building versioned topics. Version is the upper 4 bits and starts counting at 0.
+#define __ZX_INFO_TOPIC(t, v) ((zx_object_info_topic_t) ((t) | ((v) << 28)))
+
 // Valid topics for zx_object_get_info.
 typedef uint32_t zx_object_info_topic_t;
-#define ZX_INFO_NONE                    ((zx_object_info_topic_t)  0u)
-#define ZX_INFO_HANDLE_VALID            ((zx_object_info_topic_t)  1u)
-#define ZX_INFO_HANDLE_BASIC            ((zx_object_info_topic_t)  2u) // zx_info_handle_basic_t[1]
-#define ZX_INFO_PROCESS                 ((zx_object_info_topic_t)  3u) // zx_info_process_t[1]
-#define ZX_INFO_PROCESS_THREADS         ((zx_object_info_topic_t)  4u) // zx_koid_t[n]
-#define ZX_INFO_VMAR                    ((zx_object_info_topic_t)  7u) // zx_info_vmar_t[1]
-#define ZX_INFO_JOB_CHILDREN            ((zx_object_info_topic_t)  8u) // zx_koid_t[n]
-#define ZX_INFO_JOB_PROCESSES           ((zx_object_info_topic_t)  9u) // zx_koid_t[n]
-#define ZX_INFO_THREAD                  ((zx_object_info_topic_t) 10u) // zx_info_thread_t[1]
-#define ZX_INFO_THREAD_EXCEPTION_REPORT ((zx_object_info_topic_t) 11u) // zx_exception_report_t[1]
-#define ZX_INFO_TASK_STATS              ((zx_object_info_topic_t) 12u) // zx_info_task_stats_t[1]
-#define ZX_INFO_PROCESS_MAPS            ((zx_object_info_topic_t) 13u) // zx_info_maps_t[n]
-#define ZX_INFO_PROCESS_VMOS            ((zx_object_info_topic_t) 14u) // zx_info_vmo_t[n]
-#define ZX_INFO_THREAD_STATS            ((zx_object_info_topic_t) 15u) // zx_info_thread_stats_t[1]
-#define ZX_INFO_CPU_STATS               ((zx_object_info_topic_t) 16u) // zx_info_cpu_stats_t[n]
-#define ZX_INFO_KMEM_STATS              ((zx_object_info_topic_t) 17u) // zx_info_kmem_stats_t[1]
-#define ZX_INFO_RESOURCE                ((zx_object_info_topic_t) 18u) // zx_info_resource_t[1]
-#define ZX_INFO_HANDLE_COUNT            ((zx_object_info_topic_t) 19u) // zx_info_handle_count_t[1]
-#define ZX_INFO_BTI                     ((zx_object_info_topic_t) 20u) // zx_info_bti_t[1]
-#define ZX_INFO_PROCESS_HANDLE_STATS    ((zx_object_info_topic_t) 21u) // zx_info_process_handle_stats_t[1]
-#define ZX_INFO_SOCKET                  ((zx_object_info_topic_t) 22u) // zx_info_socket_t[1]
-#define ZX_INFO_VMO                     ((zx_object_info_topic_t) 23u) // zx_info_vmo_t[1]
-#define ZX_INFO_JOB                     ((zx_object_info_topic_t) 24u) // zx_info_job_t[1]
-#define ZX_INFO_TIMER                   ((zx_object_info_topic_t) 25u) // zx_info_timer_t[1]
-#define ZX_INFO_STREAM                  ((zx_object_info_topic_t) 26u) // zx_info_stream_t[1]
-#define ZX_INFO_HANDLE_TABLE            ((zx_object_info_topic_t) 27u) // zx_info_handle_extended_t[n]
-#define ZX_INFO_MSI                     ((zx_object_info_topic_t) 28u) // zx_info_msi_t[1]
-#define ZX_INFO_GUEST_STATS             ((zx_object_info_topic_t) 29u) // zx_info_guest_stats_t[1]
-
-typedef uint32_t zx_obj_props_t;
-#define ZX_OBJ_PROP_NONE                ((zx_obj_props_t) 0u)
-#define ZX_OBJ_PROP_WAITABLE            ((zx_obj_props_t) 1u)
+#define ZX_INFO_NONE                        ((zx_object_info_topic_t)  0u)
+#define ZX_INFO_HANDLE_VALID                ((zx_object_info_topic_t)  1u)
+#define ZX_INFO_HANDLE_BASIC                ((zx_object_info_topic_t)  2u) // zx_info_handle_basic_t[1]
+#define ZX_INFO_PROCESS                     ((zx_object_info_topic_t)  3u) // zx_info_process_t[1]
+#define ZX_INFO_PROCESS_THREADS             ((zx_object_info_topic_t)  4u) // zx_koid_t[n]
+#define ZX_INFO_VMAR                        ((zx_object_info_topic_t)  7u) // zx_info_vmar_t[1]
+#define ZX_INFO_JOB_CHILDREN                ((zx_object_info_topic_t)  8u) // zx_koid_t[n]
+#define ZX_INFO_JOB_PROCESSES               ((zx_object_info_topic_t)  9u) // zx_koid_t[n]
+#define ZX_INFO_THREAD                      ((zx_object_info_topic_t) 10u) // zx_info_thread_t[1]
+#define ZX_INFO_THREAD_EXCEPTION_REPORT_V1  __ZX_INFO_TOPIC(11u, 0) // zx_exception_report_t[1]
+#define ZX_INFO_THREAD_EXCEPTION_REPORT     __ZX_INFO_TOPIC(11u, 1) // zx_exception_report_t[1]
+#define ZX_INFO_TASK_STATS                  ((zx_object_info_topic_t) 12u) // zx_info_task_stats_t[1]
+#define ZX_INFO_PROCESS_MAPS                ((zx_object_info_topic_t) 13u) // zx_info_maps_t[n]
+#define ZX_INFO_PROCESS_VMOS_V1             __ZX_INFO_TOPIC(14u, 0)        // zx_info_vmo_t[n]
+#define ZX_INFO_PROCESS_VMOS                __ZX_INFO_TOPIC(14u, 1)        // zx_info_vmo_t[n]
+#define ZX_INFO_THREAD_STATS                ((zx_object_info_topic_t) 15u) // zx_info_thread_stats_t[1]
+#define ZX_INFO_CPU_STATS                   ((zx_object_info_topic_t) 16u) // zx_info_cpu_stats_t[n]
+#define ZX_INFO_KMEM_STATS                  ((zx_object_info_topic_t) 17u) // zx_info_kmem_stats_t[1]
+#define ZX_INFO_RESOURCE                    ((zx_object_info_topic_t) 18u) // zx_info_resource_t[1]
+#define ZX_INFO_HANDLE_COUNT                ((zx_object_info_topic_t) 19u) // zx_info_handle_count_t[1]
+#define ZX_INFO_BTI                         ((zx_object_info_topic_t) 20u) // zx_info_bti_t[1]
+#define ZX_INFO_PROCESS_HANDLE_STATS        ((zx_object_info_topic_t) 21u) // zx_info_process_handle_stats_t[1]
+#define ZX_INFO_SOCKET                      ((zx_object_info_topic_t) 22u) // zx_info_socket_t[1]
+#define ZX_INFO_VMO_V1                      __ZX_INFO_TOPIC(23u, 0)        // zx_info_vmo_t[1]
+#define ZX_INFO_VMO                         __ZX_INFO_TOPIC(23u, 1)        // zx_info_vmo_t[1]
+#define ZX_INFO_JOB                         ((zx_object_info_topic_t) 24u) // zx_info_job_t[1]
+#define ZX_INFO_TIMER                       ((zx_object_info_topic_t) 25u) // zx_info_timer_t[1]
+#define ZX_INFO_STREAM                      ((zx_object_info_topic_t) 26u) // zx_info_stream_t[1]
+#define ZX_INFO_HANDLE_TABLE                ((zx_object_info_topic_t) 27u) // zx_info_handle_extended_t[n]
+#define ZX_INFO_MSI                         ((zx_object_info_topic_t) 28u) // zx_info_msi_t[1]
+#define ZX_INFO_GUEST_STATS                 ((zx_object_info_topic_t) 29u) // zx_info_guest_stats_t[1]
+#define ZX_INFO_TASK_RUNTIME                ((zx_object_info_topic_t) 30u) // zx_info_task_runtime_t[1]
+#define ZX_INFO_KMEM_STATS_EXTENDED         ((zx_object_info_topic_t) 31u) // zx_info_kmem_stats_extended_t[1]
 
 // Return codes set when a task is killed.
 #define ZX_TASK_RETCODE_SYSCALL_KILL            ((int64_t) -1024)   // via zx_task_kill().
@@ -79,9 +83,7 @@ typedef struct zx_info_handle_basic {
     // not change even if the related object no longer exists.
     zx_koid_t related_koid;
 
-    // Set to ZX_OBJ_PROP_WAITABLE if the object referenced by the
-    // handle can be waited on; zero otherwise.
-    zx_obj_props_t props;
+    uint32_t reserved;
 
     uint8_t padding1[4];
 } zx_info_handle_basic_t;
@@ -99,9 +101,7 @@ typedef struct zx_info_handle_extended {
     // interchangeable.
     zx_rights_t rights;
 
-    // Set to ZX_OBJ_PROP_WAITABLE if the object referenced by the
-    // handle can be waited on; zero otherwise.
-    zx_obj_props_t props;
+    uint32_t reserved;
 
     // The unique id assigned by kernel to the object referenced by the
     // handle.
@@ -473,22 +473,55 @@ typedef struct zx_info_vmo {
 
     // VMO mapping cache policy. One of ZX_CACHE_POLICY_*
     uint32_t cache_policy;
+
+    // Amount of kernel memory, in bytes, allocated to track metadata
+    // associated with this VMO.
+    uint64_t metadata_bytes;
+
+    // Running counter of the number of times the kernel, without user request,
+    // performed actions on this VMO that would have caused |committed_bytes| to
+    // report a different value.
+    uint64_t committed_change_events;
 } zx_info_vmo_t;
 
-typedef struct zx_info_guest_stats {
+typedef struct zx_info_vmo_v1 {
+    zx_koid_t koid;
+    char name[ZX_MAX_NAME_LEN];
+    uint64_t size_bytes;
+    zx_koid_t parent_koid;
+    size_t num_children;
+    size_t num_mappings;
+    size_t share_count;
+    uint32_t flags;
+    uint8_t padding1[4];
+    uint64_t committed_bytes;
+    zx_rights_t handle_rights;
+    uint32_t cache_policy;
+} zx_info_vmo_v1_t;
+
+// Each machine has its own format for the same ZX_INFO_GUEST_STATS topic.
+// In native builds, zx_info_guest_stats_t is a typedef alias for the type.
+// Cross-tools can select the machine-specific type to use based on the
+// source of the data they are working with.
+
+typedef struct zx_arm64_info_guest_stats {
     uint32_t cpu_number;
     uint32_t flags;
-
     uint64_t vm_entries;
     uint64_t vm_exits;
-#ifdef __aarch64__
     uint64_t wfi_wfe_instructions;
     uint64_t instruction_aborts;
     uint64_t data_aborts;
     uint64_t system_instructions;
     uint64_t smc_instructions;
     uint64_t interrupts;
-#else
+} zx_arm64_info_guest_stats_t;
+
+typedef struct zx_x86_64_info_guest_stats {
+    uint32_t cpu_number;
+    uint32_t flags;
+    uint64_t vm_entries;
+    uint64_t vm_exits;
     uint64_t interrupts;
     uint64_t interrupt_windows;
     uint64_t cpuid_instructions;
@@ -501,8 +534,33 @@ typedef struct zx_info_guest_stats {
     uint64_t xsetbv_instructions;
     uint64_t pause_instructions;
     uint64_t vmcall_instructions;
+} zx_x86_64_info_guest_stats;
+
+#if defined(__aarch64__)
+typedef zx_arm64_info_guest_stats_t zx_info_guest_stats_t;
+#elif defined(__x86_64__)
+typedef zx_x86_64_info_guest_stats zx_info_guest_stats_t;
 #endif
-} zx_info_guest_stats_t;
+
+// Info on the runtime of a task.
+typedef struct zx_info_task_runtime {
+    // The total amount of time this task and its children were running.
+    // * Threads include only their own runtime.
+    // * Processes include the runtime for all of their threads (including threads that previously
+    // exited).
+    // * Jobs include the runtime for all of their processes (including processes that previously
+    // exited).
+    zx_duration_t cpu_time;
+
+    // The total amount of time this task and its children were queued to run.
+    // * Threads include only their own queue time.
+    // * Processes include the queue time for all of their threads (including threads that
+    // previously exited).
+    // * Jobs include the queue time for all of their processes (including processes that previously
+    // exited).
+    zx_duration_t queue_time;
+} zx_info_task_runtime_t;
+
 
 // kernel statistics per cpu
 // TODO(cpu), expose the deprecated stats via a new syscall.
@@ -555,10 +613,6 @@ typedef struct zx_info_kmem_stats {
     // The amount of memory committed to VMOs, both kernel and user.
     // A superset of all userspace memory.
     // Does not include certain VMOs that fall under |wired_bytes|.
-    //
-    // TODO(dbort): Break this into at least two pieces: userspace VMOs that
-    // have koids, and kernel VMOs that don't. Or maybe look at VMOs
-    // mapped into the kernel aspace vs. everything else.
     uint64_t vmo_bytes;
 
     // The amount of memory used for architecture-specific MMU metadata
@@ -571,6 +625,64 @@ typedef struct zx_info_kmem_stats {
     // Non-free memory that isn't accounted for in any other field.
     uint64_t other_bytes;
 } zx_info_kmem_stats_t;
+
+// Information about kernel memory usage - includes information returned by
+// zx_info_kmem_stats_t plus some additional details.
+// More expensive to gather than zx_info_kmem_stats_t.
+typedef struct zx_info_kmem_stats_extended {
+    // The total amount of physical memory available to the system.
+    uint64_t total_bytes;
+
+    // The amount of unallocated memory.
+    uint64_t free_bytes;
+
+    // The amount of memory reserved by and mapped into the kernel for reasons
+    // not covered by other fields in this struct. Typically for readonly data
+    // like the ram disk and kernel image, and for early-boot dynamic memory.
+    uint64_t wired_bytes;
+
+    // The amount of memory allocated to the kernel heap.
+    uint64_t total_heap_bytes;
+
+    // The portion of |total_heap_bytes| that is not in use.
+    uint64_t free_heap_bytes;
+
+    // The amount of memory committed to VMOs, both kernel and user.
+    // A superset of all userspace memory.
+    // Does not include certain VMOs that fall under |wired_bytes|.
+    uint64_t vmo_bytes;
+
+    // The amount of memory committed to pager-backed VMOs.
+    uint64_t vmo_pager_total_bytes;
+
+    // The amount of memory committed to pager-backed VMOs, that has been most
+    // recently accessed, and would not be eligible for eviction by the kernel
+    // under memory pressure.
+    uint64_t vmo_pager_newest_bytes;
+
+    // The amount of memory committed to pager-backed VMOs, that has been least
+    // recently accessed, and would be the first to be evicted by the kernel
+    // under memory pressure.
+    uint64_t vmo_pager_oldest_bytes;
+
+    // The amount of memory committed to discardable VMOs that is currently
+    // locked, or unreclaimable by the kernel under memory pressure.
+    uint64_t vmo_discardable_locked_bytes;
+
+    // The amount of memory committed to discardable VMOs that is currently
+    // unlocked, or reclaimable by the kernel under memory pressure.
+    uint64_t vmo_discardable_unlocked_bytes;
+
+    // The amount of memory used for architecture-specific MMU metadata
+    // like page tables.
+    uint64_t mmu_overhead_bytes;
+
+    // The amount of memory in use by IPC.
+    uint64_t ipc_bytes;
+
+    // Non-free memory that isn't accounted for in any other field.
+    uint64_t other_bytes;
+} zx_info_kmem_stats_extended_t;
 
 typedef struct zx_info_resource {
     // The resource kind; resource object kinds are detailed in the resource.md
@@ -593,9 +705,9 @@ typedef struct zx_info_msi {
   uint32_t base_irq_id;
   // The number of IRQs in the allocated block.
   uint32_t num_irq;
-  uint8_t padding1[4]; // align to 64 bit boundary for user_copy.
+  // The number of outstanding interrupt objects created off this Msi object.
+  uint32_t interrupt_count;
 } zx_info_msi_t;
-
 
 #define ZX_INFO_CPU_STATS_FLAG_ONLINE       (1u<<0)
 

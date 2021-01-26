@@ -7,21 +7,24 @@ library fuchsia.sysmem;
 /// Describes how the pixels within an image are represented.
 /// Simple formats need only a type.
 /// Parametric pixel formats may require additional properties.
-// TODO(ZX-2260): change struct to table
+// TODO(fxbug.dev/32119): change struct to table
+[ForDeprecatedCBindings]
 struct PixelFormat {
     PixelFormatType type;
     /// This bool effectively makes format_modifier optional, to satisfy
-    /// 'Layout = "Simple"', to satisify "FIDL Simple C Bindings".
+    /// 'ForDeprecatedCBindings', to satisify "FIDL Simple C Bindings".
     bool has_format_modifier;
     FormatModifier format_modifier;
 };
 
-// TODO(ZX-2270): add more formats.
+// TODO(fxbug.dev/32128): add more formats.
 /// The ordering of the channels in the format name reflects how
 /// the actual layout of the channel.
 ///
 /// Each of these values is opinionated re. the color spaces that can be
 /// contained within (in contrast with Vulkan).
+///
+/// This should be kept in sync with fuchsia.sysmem2.PixelFormatType.
 //
 // TODO(dustingreen): Add more comment text re. pixel data layout for each of
 // these.
@@ -84,16 +87,25 @@ enum PixelFormatType {
     /// Compatible with ZX_PIXEL_FORMAT_RGB_2220.
     RGB2220 = 111;
 
-    /// 8bpp, Luminance-only.
+    /// 8bpp, Luminance-only (red, green and blue have identical values.)
     /// Compatible with VK_FORMAT_R8_UNORM.
     /// Compatible with ZX_PIXEL_FORMAT_GRAY_8 and ZX_PIXEL_FORMAT_MONO_8.
     L8 = 112;
+
+    /// 8bpp, Red-only (Green and Blue are to be interpreted as 0).
+    /// Compatible with VK_FORMAT_R8_UNORM.
+    R8 = 113;
+
+    /// 16bpp RG, 1 plane. 8 bits R, 8 bits G.
+    /// Compatible with VK_FORMAT_R8G8_UNORM.
+    R8G8 = 114;
 };
 
 /// Describes how the pixels within an image are meant to be presented.
 /// Simple color spaces need only a type.
 /// Parametric color spaces may require additional properties.
-// TODO(ZX-2260): change struct to table
+// TODO(fxbug.dev/32119): change struct to table
+[ForDeprecatedCBindings]
 struct ColorSpace {
     ColorSpaceType type;
 };

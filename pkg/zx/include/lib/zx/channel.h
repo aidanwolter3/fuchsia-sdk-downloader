@@ -49,13 +49,18 @@ class channel final : public object<channel> {
   }
 
   zx_status_t write_etc(uint32_t flags, const void* bytes, uint32_t num_bytes,
-                        zx_handle_disposition_t* handles, uint32_t num_handles) {
+                        zx_handle_disposition_t* handles, uint32_t num_handles) const {
     return zx_channel_write_etc(get(), flags, bytes, num_bytes, handles, num_handles);
   }
 
   zx_status_t call(uint32_t flags, zx::time deadline, const zx_channel_call_args_t* args,
                    uint32_t* actual_bytes, uint32_t* actual_handles) const {
     return zx_channel_call(get(), flags, deadline.get(), args, actual_bytes, actual_handles);
+  }
+
+  zx_status_t call_etc(uint32_t flags, zx::time deadline, zx_channel_call_etc_args_t* args,
+                       uint32_t* actual_bytes, uint32_t* actual_handles) const {
+    return zx_channel_call_etc(get(), flags, deadline.get(), args, actual_bytes, actual_handles);
   }
 };
 

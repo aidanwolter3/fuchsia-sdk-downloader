@@ -5,7 +5,6 @@
 #ifndef LIB_INSPECT_CPP_VMO_STATE_H_
 #define LIB_INSPECT_CPP_VMO_STATE_H_
 
-#include <lib/async/dispatcher.h>
 #include <lib/fit/function.h>
 #include <lib/fit/promise.h>
 #include <lib/fit/sequencer.h>
@@ -183,6 +182,9 @@ class State final {
   //
   // Returned strings are guaranteed to be unique and will start with the given prefix.
   std::string UniqueName(const std::string& prefix);
+
+  // Return stats about this state.
+  InspectStats GetStats() const;
 
  private:
   // Holder for a LazyNodeCallbackFn.

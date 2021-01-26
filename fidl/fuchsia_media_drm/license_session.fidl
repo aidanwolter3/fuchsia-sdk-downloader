@@ -43,14 +43,14 @@ struct LicenseInitData {
 
 /// A message originating from the [`LicenseSession`] that the caller must route
 /// to the license server.
-struct LicenseMessage {
+resource struct LicenseMessage {
     LicenseMessageType type;
     fuchsia.mem.Buffer message;
 };
 
 /// A message originating from the license server that the caller must provide
 /// to the [`LicenseSession`] via `ProcessLicenseServerMessage`.
-struct LicenseServerMessage {
+resource struct LicenseServerMessage {
     fuchsia.mem.Buffer message;
 };
 
@@ -101,15 +101,22 @@ protocol LicenseSession {
     /// * error an [`Error`] indicating the reason for failure.
     GenerateLicenseRequest(LicenseInitData init_data) -> () error Error;
 
-    /// Inititiates the release process for the license session.
+    /// Initiates the release process for the license session.
     ///
-    /// This will cause the [`LicenseSession`] to generate a [`LicenseMessage`]
-    /// through the `OnLicenseMessageGenerated` event. The client must route
-    /// that message to the license server and the server's response to
-    /// `ProcessLicenseServerMessage`. Once the `LicenseSession` has received
-    /// the license server's reply, it will close the `LicenseSession` channel
-    /// as this session will no longer be usable.
-    GenerateLicenseRelease();
+    /// This will cause the [`LicenseSession`] to destroy the license and/or
+    /// keys associated with the session. If the session is temporary, the
+    /// session will send the reply for this request once the license has been
+    /// destroyed and then close the `LicenseSession` channel. If the session is
+    /// persistent, the session will send the reply for this request once the
+    /// license has been destroyed and then it will generate a license release
+    /// type [`LicenseMessage`] through the `OnLicenseMessageGenerated` event.
+    /// The client must route that message to the license server and the
+    /// server's response to `ProcessLicenseServerMessage`. Once the
+    /// `LicenseSession` has received the license server's reply, it will close
+    /// the `LicenseSession` channel.
+    ///
+    /// * error an [`Error`] indicating the reason for failure.
+    GenerateLicenseRelease() -> () error Error;
 
     /// Updates the [`LicenseSession`] with a message from the license server.
     ///

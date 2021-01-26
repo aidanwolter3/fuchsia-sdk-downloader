@@ -67,7 +67,7 @@ struct Request {
     uint32 flags = 0;
 };
 
-struct Response {
+resource struct Response {
     fuchsia.mem.Buffer buffer;
 
     /// Buffer identifier for the buffer. Responses with the same buffer_id are
@@ -104,7 +104,7 @@ struct FamilyInfo {
 
 /// Provider of digital font files and metadata.
 ///
-/// TODO(I18N-12): Remove deprecated methods and move to provider.fidl.
+/// TODO(fxbug.dev/8903): Remove deprecated methods and move to provider.fidl.
 [Discoverable]
 protocol Provider {
 

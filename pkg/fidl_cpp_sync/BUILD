@@ -13,19 +13,18 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "fidl_cpp_sync",
     srcs = [
+        "internal/logging.cc",
         "internal/message_sender.cc",
         "internal/synchronous_proxy.cc",
     ],
     hdrs = [
-        "include/lib/fidl/cpp/interface_handle.h",
-        "include/lib/fidl/cpp/interface_request.h",
+        "include/lib/fidl/cpp/internal/logging.h",
         "include/lib/fidl/cpp/internal/message_sender.h",
         "include/lib/fidl/cpp/internal/synchronous_proxy.h",
         "include/lib/fidl/cpp/synchronous_interface_ptr.h",
     ],
     deps = [
         "//pkg/fidl",
-        "//pkg/fidl_async",
         "//pkg/fidl_cpp_base",
         "//pkg/fit",
         "//pkg/zx",

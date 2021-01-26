@@ -4,13 +4,7 @@
 
 library fuchsia.weave;
 
-/// Error codes for WeaveKeyStore operations.
-enum ErrorCode {
-    /// Key/pairing code not found in storage.
-    FILE_NOT_FOUND = 1;
-    /// Error occurred during cryptographic operations.
-    CRYPTO_ERROR = 2;
-};
+using fuchsia.mem;
 
 /// This protocol is used for signing operations with the factory-provisioned
 /// Weave key.
@@ -35,4 +29,7 @@ protocol Signer {
 protocol FactoryDataManager {
     /// Return the device |pairing_code| on success.
     GetPairingCode() -> (bytes:16 pairing_code) error ErrorCode;
+
+    /// Returns the factory provisioned Weave certificate in PEM format.
+    GetWeaveCertificate() -> (fuchsia.mem.Buffer certificate) error ErrorCode;
 };

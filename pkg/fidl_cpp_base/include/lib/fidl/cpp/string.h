@@ -60,6 +60,8 @@ class StringPtr final : public fit::optional<std::string> {
 
   // Construct from string pointers
   StringPtr(const char* value) : fit::optional<std::string>(value) {}
+  StringPtr(const char* value, size_t size)
+      : fit::optional<std::string>(std::string(value, size)) {}
   StringPtr& operator=(const char* value) {
     fit::optional<std::string>::operator=(value);
     return *this;
@@ -172,7 +174,7 @@ class StringPtr final {
   const std::string& operator*() const { return str_; }
 
   FIDL_FIT_OPTIONAL_DEPRECATED("use value_or(\"\")")
-  operator const std::string &() const { return str_; }
+  operator const std::string&() const { return str_; }
 
  private:
   std::string str_;
@@ -282,12 +284,13 @@ struct CodingTraits<::std::string> {
   static constexpr size_t inline_size_v1_no_ee = sizeof(fidl_string_t);
   template <class EncoderImpl>
   static void Encode(EncoderImpl* encoder, std::string* value, size_t offset) {
+    const size_t size = value->size();
     fidl_string_t* string = encoder->template GetPtr<fidl_string_t>(offset);
-    string->size = value->size();
+    string->size = size;
     string->data = reinterpret_cast<char*>(FIDL_ALLOC_PRESENT);
-    size_t base = encoder->Alloc(value->size());
+    size_t base = encoder->Alloc(size);
     char* payload = encoder->template GetPtr<char>(base);
-    memcpy(payload, value->data(), value->size());
+    memcpy(payload, value->data(), size);
   }
   template <class DecoderImpl>
   static void Decode(DecoderImpl* decoder, std::string* value, size_t offset) {

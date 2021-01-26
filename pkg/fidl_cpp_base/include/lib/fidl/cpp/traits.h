@@ -54,6 +54,37 @@ struct IsStdString : public std::false_type {};
 template <>
 struct IsStdString<std::string> : public std::true_type {};
 
+// True if a struct has padding.
+// Does not include inner structs or other types recursively.
+template <typename T>
+struct HasPadding : public std::false_type {};
+
+// The type be directly copied with memcpy to/from the wire format representation.
+template <typename T>
+struct IsMemcpyCompatible : public std::false_type {};
+
+// clang-format off
+template <> struct IsMemcpyCompatible<uint8_t> : public std::true_type {};
+template <> struct IsMemcpyCompatible<uint16_t> : public std::true_type {};
+template <> struct IsMemcpyCompatible<uint32_t> : public std::true_type {};
+template <> struct IsMemcpyCompatible<uint64_t> : public std::true_type {};
+template <> struct IsMemcpyCompatible<int8_t> : public std::true_type {};
+template <> struct IsMemcpyCompatible<int16_t> : public std::true_type {};
+template <> struct IsMemcpyCompatible<int32_t> : public std::true_type {};
+template <> struct IsMemcpyCompatible<int64_t> : public std::true_type {};
+// clang-format on
+
+template <typename T, size_t N>
+struct IsMemcpyCompatible<std::array<T, N>> : public IsMemcpyCompatible<T> {};
+
+namespace internal {
+// A C++14 compatible replacement for std::bool_constant.
+template <bool Value>
+struct BoolConstant {
+  static const bool value = Value;
+};
+}  // namespace internal
+
 }  // namespace fidl
 
 #endif  // LIB_FIDL_CPP_TRAITS_H_

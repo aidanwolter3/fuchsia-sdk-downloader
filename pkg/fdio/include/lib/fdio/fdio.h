@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef LIB_FDIO_FDIO_H_
-#define LIB_FDIO_FDIO_H_
+#ifndef LIB_FDIO_INCLUDE_LIB_FDIO_FDIO_H_
+#define LIB_FDIO_INCLUDE_LIB_FDIO_FDIO_H_
 
-#include <zircon/types.h>
-#include <zircon/compiler.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <zircon/compiler.h>
+#include <zircon/types.h>
 
 __BEGIN_CDECLS
 
@@ -32,6 +32,16 @@ zx_status_t fdio_create(zx_handle_t handle, fdio_t** out_io);
 
 // Creates an |fdio_t| that does nothing.
 fdio_t* fdio_null_create(void);
+
+// Access the |zxio_t| field within an |fdio_t|.
+typedef struct zxio_tag zxio_t;
+zxio_t* fdio_get_zxio(fdio_t* io);
+
+// Creates a file descriptor that does nothing.
+//
+// Returns -1 and sets errno if the function is unable to create the file
+// descriptor (e.g., if the file descriptor table is full).
+int fdio_fd_create_null(void);
 
 // Install an |fdio_t| in the file descriptor table for this process.
 //
@@ -111,4 +121,4 @@ fdio_t* fdio_zxio_create(zxio_storage_t** out_storage);
 
 __END_CDECLS
 
-#endif  // LIB_FDIO_FDIO_H_
+#endif  // LIB_FDIO_INCLUDE_LIB_FDIO_FDIO_H_

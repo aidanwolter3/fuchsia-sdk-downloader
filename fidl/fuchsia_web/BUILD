@@ -26,9 +26,11 @@ fidl_library(
     ],
     deps = [
         "//fidl/fuchsia_io",
+        "//fidl/fuchsia_logger",
         "//fidl/fuchsia_media_sessions2",
         "//fidl/fuchsia_mem",
         "//fidl/fuchsia_net_http",
+        "//fidl/fuchsia_settings",
         "//fidl/fuchsia_ui_gfx",
         "//fidl/fuchsia_ui_views",
     ],
@@ -39,13 +41,15 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_web_cc",
     library = ":fuchsia_web",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
         "//fidl/fuchsia_io:fuchsia_io_cc",
+        "//fidl/fuchsia_logger:fuchsia_logger_cc",
         "//fidl/fuchsia_media_sessions2:fuchsia_media_sessions2_cc",
         "//fidl/fuchsia_mem:fuchsia_mem_cc",
         "//fidl/fuchsia_net_http:fuchsia_net_http_cc",
+        "//fidl/fuchsia_settings:fuchsia_settings_cc",
         "//fidl/fuchsia_ui_gfx:fuchsia_ui_gfx_cc",
         "//fidl/fuchsia_ui_views:fuchsia_ui_views_cc",
     ],

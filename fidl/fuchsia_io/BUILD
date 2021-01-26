@@ -19,6 +19,7 @@ fidl_library(
         "io.fidl",
     ],
     deps = [
+        "//fidl/fuchsia_io2",
         "//fidl/fuchsia_mem",
         "//fidl/zx",
     ],
@@ -29,9 +30,10 @@ load("//build_defs:cc_fidl_library.bzl", "cc_fidl_library")
 cc_fidl_library(
     name = "fuchsia_io_cc",
     library = ":fuchsia_io",
-    # TODO(DX-288): remove explicit deps once C++ compilation API is available
+    # TODO(fxbug.dev/5205): remove explicit deps once C++ compilation API is available
     #     in Skylark and generated through the cc_fidl_library rule.
     deps = [
+        "//fidl/fuchsia_io2:fuchsia_io2_cc",
         "//fidl/fuchsia_mem:fuchsia_mem_cc",
         "//fidl/zx:zx_cc",
     ],

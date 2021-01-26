@@ -4,6 +4,7 @@
 
 library fuchsia.io;
 
+using fuchsia.io2;
 using fuchsia.mem;
 using zx;
 
@@ -11,7 +12,7 @@ using zx;
 /// how to interpret the optional handle.
 ///
 /// Refer to `Node.Describe()` and `Node.OnOpen()` for usage.
-union NodeInfo {
+resource union NodeInfo {
     1: Service service;
     2: FileObject file;
     3: DirectoryObject directory;
@@ -35,37 +36,38 @@ const uint32 FILE_SIGNAL_READABLE = 0x01000000; // ZX_USER_SIGNAL_0
 const uint32 FILE_SIGNAL_WRITABLE = 0x02000000; // ZX_USER_SIGNAL_1
 
 /// The object may be cast to interface 'File'.
-struct FileObject {
+resource struct FileObject {
     /// An optional event which transmits information about an object's readability
     /// or writability. This event relays information about the underlying object, not
     /// the capability granted to client: this event may be signalled "readable" on a
     /// connection that does not have the capability to read.
     ///
     /// The "`FILE_SIGNAL_`" values may be observed on this event.
-    handle<event>? event;
+    zx.handle:EVENT? event;
 
     /// A placeholder for future stream support.
     ///
     /// Currently, servers are required not to send a handle in this field.
-    handle<stream>? stream;
+    zx.handle:STREAM? stream;
 };
 
 /// The object may be cast to interface 'Directory'.
+[ForDeprecatedCBindings]
 struct DirectoryObject {
 };
 
 /// The object is accompanied by a pipe.
-struct Pipe {
-    handle<socket> socket;
+resource struct Pipe {
+    zx.handle:SOCKET socket;
 };
 
 /// The object is a file which is represented as an immutable VMO.
 /// Although a VMO is returned as a part of this structure, this underlying object
 /// may represent multiple Vmofiles. To identify the logical portion of the VMO
 /// that represents the single file, an offset and length parameter are also supplied.
-struct Vmofile {
+resource struct Vmofile {
     /// The VMO which backs this file.
-    handle<vmo> vmo;
+    zx.handle:VMO vmo;
     /// The index into `vmo` which represents the first byte of the file.
     uint64 offset;
     /// The number of bytes, starting at `offset`, which may be used to represent this file.
@@ -84,27 +86,27 @@ const uint32 DEVICE_SIGNAL_ERROR = 0x08000000; // ZX_USER_SIGNAL_3
 const uint32 DEVICE_SIGNAL_HANGUP = 0x10000000; // ZX_USER_SIGNAL_4
 
 /// The object may be cast to interface 'Device'.
-struct Device {
+resource struct Device {
     /// An optional event which transmits information about a device's state.
     ///
     /// The "`DEVICE_SIGNAL_`" values may be observed on this event.
-    handle<eventpair>? event;
+    zx.handle:EVENTPAIR? event;
 };
 
 /// The object may be cast to interface 'Tty'
-struct Tty {
-    handle<eventpair>? event;
+resource struct Tty {
+    zx.handle:EVENTPAIR? event;
 };
 
 /// The object may be cast to interface [`fuchsia.posix.socket.DatagramSocket`].
-struct DatagramSocket {
+resource struct DatagramSocket {
     /// See [`fuchsia.posix.socket.DatagramSocket`] for details.
-    handle<eventpair> event;
+    zx.handle:EVENTPAIR event;
 };
 
 /// The object may be cast to interface [`fuchsia.posix.socket.StreamSocket`].
-struct StreamSocket {
-    handle<socket> socket;
+resource struct StreamSocket {
+    zx.handle:SOCKET socket;
 };
 
 /// Can read from target object.
@@ -173,7 +175,7 @@ const uint32 OPEN_FLAG_NOT_DIRECTORY = 0x02000000;
 const uint32 CLONE_FLAG_SAME_RIGHTS = 0x04000000;
 
 /// Node defines the minimal interface for entities which can be accessed in a filesystem.
-[Layout = "Simple"]
+[ForDeprecatedCBindings]
 protocol Node {
     /// Create another connection to the same remote object.
     ///
@@ -264,6 +266,7 @@ const uint32 MODE_TYPE_SOCKET = 0x0C000;
 const uint32 MODE_TYPE_SERVICE = 0x10000;
 
 /// NodeAttributes defines generic information about a filesystem node.
+[ForDeprecatedCBindings]
 struct NodeAttributes {
     /// Protection bits and node type information describe in 'mode'.
     uint32 mode;
@@ -326,32 +329,36 @@ const uint32 VMO_FLAG_PRIVATE = 0x00010000;
 const uint32 VMO_FLAG_EXACT = 0x00020000;
 
 /// File defines the interface of a node which contains a flat layout of data.
-[Layout = "Simple"]
 protocol File {
     compose Node;
+    compose fuchsia.io2.AdvisoryLocking;
 
     /// Reads `count` bytes at the seek offset.
     /// The seek offset is moved forward by the number of bytes read.
     ///
-    /// This method requires following rights: `OPEN_RIGHT_READABLE`.
+    /// This method requires following rights: `OPEN_RIGHT_READABLE`, otherwise returns
+    /// `ZX_ERR_BAD_HANDLE`.
     Read(uint64 count) -> (zx.status s, vector<uint8>:MAX_BUF data);
 
     /// Reads `count` bytes at the provided offset.
     /// Does not affect the seek offset.
     ///
-    /// This method requires following rights: `OPEN_RIGHT_READABLE`.
+    /// This method requires following rights: `OPEN_RIGHT_READABLE`, otherwise returns
+    /// `ZX_ERR_BAD_HANDLE`.
     ReadAt(uint64 count, uint64 offset) -> (zx.status s, vector<uint8>:MAX_BUF data);
 
     /// Writes data at the seek offset.
     /// The seek offset is moved forward by the number of bytes written.
     ///
-    /// This method requires following rights: `OPEN_RIGHT_WRITABLE`.
+    /// This method requires following rights: `OPEN_RIGHT_WRITABLE`, otherwise returns
+    /// `ZX_ERR_BAD_HANDLE`.
     Write(vector<uint8>:MAX_BUF data) -> (zx.status s, uint64 actual);
 
     /// Writes data to the provided offset.
     /// Does not affect the seek offset.
     ///
-    /// This method requires following rights: `OPEN_RIGHT_WRITABLE`.
+    /// This method requires following rights: `OPEN_RIGHT_WRITABLE`, otherwise returns
+    /// `ZX_ERR_BAD_HANDLE`.
     WriteAt(vector<uint8>:MAX_BUF data, uint64 offset) -> (zx.status s, uint64 actual);
 
     /// Moves the offset at which the next invocation of `Read()` or `Write()` will
@@ -362,7 +369,8 @@ protocol File {
 
     /// Shrinks the file size to 'length' bytes.
     ///
-    /// This method requires following rights: `OPEN_RIGHT_WRITABLE`.
+    /// This method requires following rights: `OPEN_RIGHT_WRITABLE`, otherwise returns
+    /// `ZX_ERR_BAD_HANDLE`.
     Truncate(uint64 length) -> (zx.status s);
 
     /// Acquires the `Directory.Open` rights and flags used to access this file.
@@ -433,7 +441,7 @@ const uint32 WATCH_MASK_IDLE = 0x00000010;
 /// Used by `Directory.Watch`. Requests transmission of all watcher events.
 const uint32 WATCH_MASK_ALL = 0x0000001F;
 
-// TODO(ZX-2645): Unused.
+// TODO(fxbug.dev/7903): Unused.
 /// WatchedEvent describes events returned from a DirectoryWatcher.
 struct WatchedEvent {
     uint8 event;
@@ -441,26 +449,26 @@ struct WatchedEvent {
     vector<uint8>:MAX_FILENAME name;
 };
 
-// TODO(ZX-2645): Unused.
+// TODO(fxbug.dev/7903): Unused.
 /// DirectoryWatcher transmits messages from a filesystem server
 /// about events happening in the filesystem. Clients can register
 /// new watchers using the `Directory.Watch` method, where they can
 /// filter which events they want to receive notifications for.
-[Layout = "Simple"]
 protocol DirectoryWatcher {
     // TODO(smklein): Convert this to a vector of WatchedEvents, when possible.
     OnEvent(vector<uint8>:MAX_BUF events);
 };
 
 /// Directory defines a node which is capable of containing other Objects.
-[Layout = "Simple"]
+[ForDeprecatedCBindings]
 protocol Directory {
     compose Node;
 
     /// Opens a new object relative to this directory object.
     ///
     /// `path` may contain multiple segments, separated by "/" characters,
-    /// and should never be empty; i.e., "" is an invalid path.
+    /// and should never be empty; i.e., "" is an invalid path. Paths should not contain
+    /// a leading "/".
     ///
     /// `flags` may be any of the `OPEN_FLAG_*` and `OPEN_RIGHT_*` values, bitwise ORed together.
     /// The `OPEN_FLAG_DESCRIBE` flag may cause an `OnOpen` event to be transmitted
@@ -592,13 +600,14 @@ protocol Directory {
     /// Options must be zero; it is reserved.
     ///
     /// This method does not require any rights, similar to ReadDirents.
-    Watch(uint32 mask, uint32 options, handle<channel> watcher) -> (zx.status s);
+    Watch(uint32 mask, uint32 options, zx.handle:CHANNEL watcher) -> (zx.status s);
 };
 
 const uint32 MOUNT_CREATE_FLAG_REPLACE = 0x00000001;
 
 const uint64 MAX_FS_NAME_BUFFER = 32;
 
+[ForDeprecatedCBindings]
 struct FilesystemInfo {
     /// The number of data bytes which may be stored in a filesystem.
     uint64 total_bytes;
@@ -629,7 +638,7 @@ struct FilesystemInfo {
 
 /// DirectoryAdmin defines a directory which is capable of handling
 /// administrator tasks within the filesystem.
-[Layout = "Simple"]
+[ForDeprecatedCBindings]
 protocol DirectoryAdmin {
     compose Directory;
 

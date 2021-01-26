@@ -63,7 +63,7 @@ protocol Access {
     /// when the system is in discoverable mode and during name discovery procedures.
     ///
     /// + request `name` The complete local name to assign to the system.
-    SetLocalName(string name);
+    SetLocalName(bt.DeviceName name);
 
     /// Set the local device class that will be visible to nearby peers when the system is in
     /// discoverable mode.
@@ -97,7 +97,11 @@ protocol Access {
     ///
     /// - response `updated` Peers that were added or updated since the last call to WatchPeers().
     /// - response `removed` Ids of peers that were removed since the last call to WatchPeers().
-    WatchPeers() -> (vector<Peer> updated, vector<bt.PeerId> removed);
+    // TODO(fxbug.dev/65461): Implement a pagination scheme for this method and apply suitable
+    // vectors bounds. MAX will likely not prevent this method from overfilling a FIDL message if
+    // the client falls behind. This can happen during device discovery as it can involve high
+    // volume of peer updates.
+    WatchPeers() -> (vector<Peer>:MAX updated, vector<bt.PeerId>:MAX removed);
 
     /// Initiate a connection to the peer with the given `id`. This method connects both BR/EDR and
     /// LE transports depending on the technologies that the peer is known to support.
@@ -114,6 +118,26 @@ protocol Access {
     /// + request `id` The id of the peer to disconnect.
     /// * error Reports `Error.PEER_NOT_FOUND` if `id` is not recognized.
     Disconnect(bt.PeerId id) -> () error Error;
+
+    /// Initiate a pairing to the remote `id` with the given `options`.
+    /// This call completes only once the pairing procedure has completed or aborted.
+    /// Returns an error if no connected peer with `id` is found or the pairing procedure fails.
+    /// If the named peer is already paired, this returns immediately with a success value - unless
+    /// the pairing is over LE and the PairingOptions.le_security_level is more secure than the
+    /// current security level, in which case we will attempt to raise security to the requested
+    /// level.
+    ///
+    /// Pairing will take place over whichever transport is indicated by `options.transport`. If
+    /// that transport isn't currently connected, the pairing will fail with `Error.PEER_NOT_FOUND`.
+    /// Currently, if DUAL_MODE is requested, we will attempt to pair over the LE transport.
+    ///
+    /// + request `id` The id of the peer to initiate pairing with
+    /// + request `options` The configuration options to use for this pairing request
+    /// * error Reports `Error.PEER_NOT_FOUND` if `id` is not recognized, or the peer is not
+    ///   connected on the requested transport.
+    /// * error Reports `Error.INVALID_ARGUMENTS` if ill-formed options are passed
+    /// * error Reports `Error.FAILED` if an error occurs during pairing
+    Pair(bt.PeerId id, PairingOptions options) -> () error Error;
 
     /// Removes all bonding information and disconnects any existing links with the peer with the
     /// given `id`.

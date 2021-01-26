@@ -54,14 +54,21 @@ __BEGIN_CDECLS
 #define FIDL_ALLOC_ABSENT ((uintptr_t)0)
 
 // Out of line allocations are all 8 byte aligned.
-// TODO(fxb/42792): Remove either this FIDL_ALIGN macro or the FidlAlign function in
+// TODO(fxbug.dev/42792): Remove either this FIDL_ALIGN macro or the FidlAlign function in
 // fidl/internal.h.
 #define FIDL_ALIGNMENT ((size_t)8)
 #define FIDL_ALIGN(a) (((a) + 7u) & ~7u)
 #define FIDL_ALIGNDECL alignas(FIDL_ALIGNMENT)
 
-// An opaque struct representing the encoding of a particular fidl
-// type.
+// The maximum depth of out-of-line objects in the wire format.
+// 0 is the initial depth, 1 is the first out of line object, etc.
+// Tables count as two depth levels because the vector body and the
+// table elements are both out of line.
+#define FIDL_MAX_DEPTH 32
+
+// An opaque struct containing metadata for encoding a particular fidl
+// type. The actual length of the struct is different depending on the
+// kind of fidl type it is describing.
 typedef struct fidl_type fidl_type_t;
 
 // Primitive types.
@@ -369,12 +376,12 @@ typedef struct fidl_message_header {
 
 #define FIDL_TXID_NO_RESPONSE 0ul
 
-// A FIDL message.
-typedef struct fidl_msg {
+// An outgoing FIDL message.
+typedef struct fidl_outgoing_msg {
   // The bytes of the message.
   //
   // The bytes of the message might be in the encoded or decoded form.
-  // Functions that take a |fidl_msg_t| as an argument should document whether
+  // Functions that take a |fidl_outgoing_msg_t| as an argument should document whether
   // the expect encoded or decoded messages.
   //
   // See |num_bytes| for the number of bytes in the message.
@@ -382,15 +389,38 @@ typedef struct fidl_msg {
 
   // The handles of the message.
   //
-  // See |num_bytes| for the number of bytes in the message.
-  zx_handle_t* handles;
+  // See |num_handles| for the number of handles in the message.
+  zx_handle_disposition_t* handles;
 
   // The number of bytes in |bytes|.
   uint32_t num_bytes;
 
   // The number of handles in |handles|.
   uint32_t num_handles;
-} fidl_msg_t;
+} fidl_outgoing_msg_t;
+
+// An incoming FIDL message.
+typedef struct fidl_incoming_msg {
+  // The bytes of the message.
+  //
+  // The bytes of the message might be in the encoded or decoded form.
+  // Functions that take a |fidl_incoming_msg_t| as an argument should document whether
+  // the expect encoded or decoded messages.
+  //
+  // See |num_bytes| for the number of bytes in the message.
+  void* bytes;
+
+  // The handles of the message, along with rights and type information.
+  //
+  // See |num_handles| for the number of handles in the message.
+  zx_handle_info_t* handles;
+
+  // The number of bytes in |bytes|.
+  uint32_t num_bytes;
+
+  // The number of handles in |handles|.
+  uint32_t num_handles;
+} fidl_incoming_msg_t;
 
 // An outstanding FIDL transaction.
 typedef struct fidl_txn fidl_txn_t;
@@ -404,7 +434,7 @@ struct fidl_txn {
   // Call |reply| only once for each |txn| object. After |reply| returns, the
   // |txn| object is considered invalid and might have been freed or reused
   // for another purpose.
-  zx_status_t (*reply)(fidl_txn_t* txn, const fidl_msg_t* msg);
+  zx_status_t (*reply)(fidl_txn_t* txn, const fidl_outgoing_msg_t* msg);
 };
 
 // An epitaph is a message that a server sends just prior to closing the
@@ -428,6 +458,14 @@ typedef struct fidl_epitaph {
 enum {
   kFidlOrdinalEpitaph = 0xFFFFFFFFFFFFFFFF,
 };
+
+// fidl_iovec_substition represents a pointer-width value substitution.
+// The operation *ptr = value can be performed to overwrite the current value
+// at a location with the original value.
+typedef struct fidl_iovec_substitution {
+  void** ptr;
+  void* value;
+} fidl_iovec_substitution_t;
 
 // Assumptions.
 

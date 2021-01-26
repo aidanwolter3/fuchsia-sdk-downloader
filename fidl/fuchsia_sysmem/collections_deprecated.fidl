@@ -4,9 +4,12 @@
 
 library fuchsia.sysmem;
 
+using zx;
+
 /// Information about a buffer collection and its buffers.
-// TODO(ZX-2260): change struct to table
-struct BufferCollectionInfo {
+// TODO(fxbug.dev/32119): change struct to table
+[ForDeprecatedCBindings]
+resource struct BufferCollectionInfo {
     /// The number of buffers in the collection.
     uint32 buffer_count;
 
@@ -23,7 +26,7 @@ struct BufferCollectionInfo {
     /// client specified when allocating the buffer collection.  For example,
     /// a client which expressed a read-only usage will receive VMOs without
     /// write rights.
-    array<handle<vmo>?>:64 vmos;
+    array<zx.handle:VMO?>:64 vmos;
 
     /// The size of each VMO provided.
     /// This property is only present when the buffers are backed by VMOs.
