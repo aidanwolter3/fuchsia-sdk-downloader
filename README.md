@@ -4,6 +4,15 @@
 
 Disclaimer: This is not an official Google project.
 
+## How to use this SDK
+
+Note: This is not the cleanest at the moment. It would be nice to upstream the
+local patches, create releases with archives for the SDKs, and include the logic
+for downloading the appropriate SDK archive into this repository.
+
+The `linux` and `mac` branches hold the actual SDKs for each corresponding
+platform. Simply clone the repository, then checkout the proper branch.
+
 ## How was this SDK generated?
 1. Clone fuchsia following the steps on fuchsia.dev
 2. Sync to the version
@@ -21,8 +30,8 @@ Disclaimer: This is not an official Google project.
 ```
 4. Generate the Bazel frontend
 ```bash
-[~/fuchsia] $ mkdir ~/fuchsia_sdk
+[~/fuchsia] $ mkdir ~/fuchsia-bazel-sdk
 [~/fuchsia] $ ./scripts/sdk/bazel/generate.py \
     --archive out/default/sdk/archive/core.tar.gz \
-    --output ~/fuchsia_sdk
+    --output ~/fuchsia-bazel-sdk
 ```
