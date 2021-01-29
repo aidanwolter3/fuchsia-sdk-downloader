@@ -1,35 +1,17 @@
-DOWNLOAD_SDK_SH="""
-#!/bin/bash
-sdk_url="$1"
-branch="$2"
-git init
-git remote add origin "${sdk_url}"
-git fetch origin "${branch}"
-git checkout "${branch}"
-"""
-
-
-# LOCAL_SDK_SH="""
-# #!/bin/bash
-# tar_path="$1"
-# tar -xf "${tar_path}"
-# """
-
 def _impl(repository_ctx):
   repository_ctx.file("BUILD", content="", executable=False)
 
+  tar_base_url = "https://github.com/aidanwolter3/fuchsia-sdk-downloader/releases/download"
+  tar_version = "f0850bdc"
   if repository_ctx.os.name == "linux":
-    tar_url = "linux"
+    tar_file = "sdk-linux.tar.gz"
   elif repository_ctx.os.name == "mac os x":
-    tar_url = "mac"
+    tar_file = "sdk-mac.tar.gz"
   else:
     fail("Unsupported platform: %s" % repository_ctx.os.name)
 
-  repository_ctx.file("download_sdk.sh", content=DOWNLOAD_SDK_SH)
-  repository_ctx.execute(["./download_sdk.sh", tar_url])
-
-  # repository_ctx.file("local_sdk.sh", content=LOCAL_SDK_SH)
-  # repository_ctx.execute(["./local_sdk.sh", tar_url])
+  tar_url = tar_base_url + "/" + tar_version + "/" + tar_file
+  repository_ctx.download_and_extract(tar_url)
 
 
 download_fuchsia_sdk = repository_rule(
