@@ -1,0 +1,397 @@
+From 0e0623f7660f8e6d09d9d88a9bde236a95b8c4dd Mon Sep 17 00:00:00 2001
+From: Aidan Wolter <wolter.aidan@gmail.com>
+Date: Sun, 10 May 2020 02:20:37 -0700
+Subject: [PATCH 1/2] Update crosstool for bazel 3.1.0
+
+This CL fixes issues with the cc_toolchain rules when running on Bazel
+3.1.0.
+
+Documention for the previous rules can be found here:
+https://docs.bazel.build/versions/0.20.0/tutorial/crosstool.html
+
+Documentation for the new rules can be found here:
+https://docs.bazel.build/versions/master/cc-toolchain-config-reference.html
+
+These modifications will need to be upstreamed to Fuchsia's script here:
+https://fuchsia.googlesource.com/fuchsia/+/master/scripts/sdk/bazel/generate.py
+---
+ build_defs/internal/crosstool/BUILD.crosstool |  15 +-
+ build_defs/internal/crosstool/CROSSTOOL.in    | 133 --------------
+ .../crosstool/cc_toolchain_config.bzl.in      | 165 ++++++++++++++++++
+ build_defs/internal/crosstool/crosstool.bzl   |   6 +-
+ 4 files changed, 180 insertions(+), 139 deletions(-)
+ delete mode 100644 build_defs/internal/crosstool/CROSSTOOL.in
+ create mode 100644 build_defs/internal/crosstool/cc_toolchain_config.bzl.in
+
+diff --git a/build_defs/internal/crosstool/BUILD.crosstool b/build_defs/internal/crosstool/BUILD.crosstool
+index 3a0d340..9e6c8dd 100644
+--- a/build_defs/internal/crosstool/BUILD.crosstool
++++ b/build_defs/internal/crosstool/BUILD.crosstool
+@@ -7,6 +7,7 @@
+ 
+ licenses(["notice"])
+ 
++load(":cc_toolchain_config.bzl", "cc_toolchain_config")
+ 
+ package(default_visibility = ["//visibility:public"])
+ 
+@@ -90,18 +91,26 @@ filegroup(
+     for cpu in TARGET_CPUS
+ ]
+ 
++[
++    cc_toolchain_config(
++        name = "crosstool-1.x.x-llvm-fuchsia-config-" + cpu,
++    )
++    for cpu in TARGET_CPUS
++]
++
+ [
+     cc_toolchain(
+         name = "cc-compiler-" + cpu,
+         toolchain_identifier = "crosstool-1.x.x-llvm-fuchsia-" + cpu,
++        toolchain_config = "crosstool-1.x.x-llvm-fuchsia-config-" + cpu,
+         all_files = ":every-file-" + cpu,
++        ar_files = ":compile",
+         compiler_files = ":compile",
+-        cpu = cpu,
+         dwp_files = ":empty",
+-        dynamic_runtime_libs = [":runtime-" + cpu],
++        dynamic_runtime_lib = ":runtime-" + cpu,
+         linker_files = ":link-" + cpu,
+         objcopy_files = ":objcopy",
+-        static_runtime_libs = [":runtime-" + cpu],
++        static_runtime_lib = ":runtime-" + cpu,
+         strip_files = ":runtime-" + cpu,
+         supports_param_files = 1,
+     )
+diff --git a/build_defs/internal/crosstool/CROSSTOOL.in b/build_defs/internal/crosstool/CROSSTOOL.in
+deleted file mode 100644
+index 745db51..0000000
+--- a/build_defs/internal/crosstool/CROSSTOOL.in
++++ /dev/null
+@@ -1,133 +0,0 @@
+-# Copyright 2018 The Fuchsia Authors. All rights reserved.
+-# Use of this source code is governed by a BSD-style license that can be
+-# found in the LICENSE file.
+-
+-major_version: "1.x.x"
+-minor_version: "llvm:7.x.x"
+-default_target_cpu: "x64"
+-
+-toolchain {
+-  toolchain_identifier: "crosstool-1.x.x-llvm-fuchsia-x86_64"
+-  host_system_name: "x86_64-unknown-linux-gnu"
+-  target_system_name: "x86_64-fuchsia"
+-  target_cpu: "x86_64"
+-  target_libc: "fuchsia"
+-  compiler: "llvm"
+-  abi_version: "local"
+-  abi_libc_version: "local"
+-  tool_path {
+-    name: "ar"
+-    path: "clang/bin/llvm-ar"
+-  }
+-  tool_path {
+-    name: "cpp"
+-    path: "clang/bin/clang++"
+-  }
+-  tool_path {
+-    name: "gcc"
+-    path: "clang/bin/clang"
+-  }
+-  tool_path {
+-    name: "lld"
+-    path: "clang/bin/lld"
+-  }
+-  tool_path {
+-    name: "objdump"
+-    path: "clang/bin/llvm-objdump"
+-  }
+-  tool_path {
+-    name: "strip"
+-    path: "clang/bin/llvm-strip"
+-  }
+-  tool_path {
+-    name: "nm"
+-    path: "clang/bin/llvm-nm"
+-  }
+-  tool_path {
+-    name: "objcopy"
+-    path: "clang/bin/llvm-objcopy"
+-  }
+-  tool_path {
+-    name: "dwp"
+-    path: "/not_available/dwp"
+-  }
+-  tool_path {
+-    name: "compat-ld"
+-    path: "/not_available/compat-ld"
+-  }
+-  tool_path {
+-    name: "gcov"
+-    path: "/not_available/gcov"
+-  }
+-  tool_path {
+-    name: "gcov-tool"
+-    path: "/not_available/gcov-tool"
+-  }
+-  tool_path {
+-    name: "ld"
+-    path: "clang/bin/ld.lld"
+-  }
+-  # Implicit dependencies for Fuchsia system functionality
+-  cxx_builtin_include_directory: "%{SYSROOT_X64}/include" # Platform parts of libc.
+-  cxx_builtin_include_directory: "%{CROSSTOOL_ROOT}/clang/lib/x86_64-fuchsia/include/c++/v1" # Platform libc++.
+-  cxx_builtin_include_directory: "%{CROSSTOOL_ROOT}/clang/lib/clang/8.0.0/include" # Platform libc++.
+-  builtin_sysroot: "%{SYSROOT_X64}"
+-  feature {
+-    name: "default_compile_flags"
+-    flag_set {
+-      action: "assemble"
+-      action: "preprocess-assemble"
+-      action: "linkstamp-compile"
+-      action: "c-compile"
+-      action: "c++-compile"
+-      action: "c++-header-parsing"
+-      action: "c++-module-compile"
+-      action: "c++-module-codegen"
+-      action: "lto-backend"
+-      action: "clif-match"
+-      flag_group {
+-        flag: "--target=x86_64-fuchsia"
+-        flag: "-Wall"
+-        flag: "-Werror"
+-        flag: "-Wextra-semi"
+-        flag: "-Wnewline-eof"
+-        flag: "-Wshadow"
+-      }
+-    }
+-    flag_set {
+-      action: "linkstamp-compile"
+-      action: "c++-compile"
+-      action: "c++-header-parsing"
+-      action: "c++-module-compile"
+-      action: "c++-module-codegen"
+-      action: "lto-backend"
+-      action: "clif-match"
+-      flag_group {
+-        flag: "-std=c++14"
+-        flag: "-xc++"
+-        # Needed to compile shared libraries.
+-        flag: "-fPIC"
+-      }
+-    }
+-    enabled: true
+-  }
+-  feature {
+-    name: "default_link_flags"
+-    flag_set {
+-      action: "c++-link-executable"
+-      action: "c++-link-dynamic-library"
+-      action: "c++-link-nodeps-dynamic-library"
+-      flag_group {
+-        flag: "--target=x86_64-fuchsia"
+-        flag: "--driver-mode=g++"
+-        flag: "-lzircon"
+-      }
+-    }
+-    enabled: true
+-  }
+-  feature {
+-    name: "supports_pic"
+-    enabled: true
+-  }
+-  cc_target_os: "fuchsia"
+-}
+diff --git a/build_defs/internal/crosstool/cc_toolchain_config.bzl.in b/build_defs/internal/crosstool/cc_toolchain_config.bzl.in
+new file mode 100644
+index 0000000..c06d40f
+--- /dev/null
++++ b/build_defs/internal/crosstool/cc_toolchain_config.bzl.in
+@@ -0,0 +1,165 @@
++load("@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl", "tool_path", "feature", "flag_set", "flag_group")
++
++def _impl(ctx):
++    tool_paths = [
++        tool_path(
++            name = "ar",
++            path = "clang/bin/llvm-ar",
++        ),
++        tool_path(
++            name = "cpp",
++            path = "clang/bin/clang++",
++        ),
++        tool_path(
++            name = "gcc",
++            path = "clang/bin/clang",
++        ),
++        tool_path(
++            name = "lld",
++            path = "clang/bin/lld",
++        ),
++        tool_path(
++            name = "objdump",
++            path = "clang/bin/llvm-objdump",
++        ),
++        tool_path(
++            name = "strip",
++            path = "clang/bin/llvm-strip",
++        ),
++        tool_path(
++            name = "nm",
++            path = "clang/bin/llvm-nm",
++        ),
++        tool_path(
++            name = "objcopy",
++            path = "clang/bin/llvm-objcopy",
++        ),
++        tool_path(
++            name = "dwp",
++            path = "/not_available/dwp",
++        ),
++        tool_path(
++            name = "compat-ld",
++            path = "/not_available/compat-ld",
++        ),
++        tool_path(
++            name = "gcov",
++            path = "/not_available/gcov",
++        ),
++        tool_path(
++            name = "gcov-tool",
++            path = "/not_available/gcov-tool",
++        ),
++        tool_path(
++            name = "ld",
++            path = "clang/bin/ld.lld",
++        ),
++    ]
++    features = [
++        feature(
++            name = "default_compile_flags",
++            flag_sets = [
++                flag_set(
++                    actions = [
++                        "assemble",
++                        "preprocess-assemble",
++                        "linkstamp-compile",
++                        "c-compile",
++                        "c++-compile",
++                        "c++-header-parsing",
++                        "c++-module-compile",
++                        "c++-module-codegen",
++                        "lto-backend",
++                        "clif-match",
++                    ],
++                    flag_groups = [
++                        flag_group(
++                            flags = [
++                                "--target=x86_64-fuchsia",
++                                "-Wall",
++                                "-Werror",
++                                "-Wextra-semi",
++                                "-Wnewline-eof",
++                                "-Wshadow",
++                            ],
++                        ),
++                    ],
++                ),
++                flag_set(
++                    actions = [
++                        "linkstamp-compile",
++                        "c++-compile",
++                        "c++-header-parsing",
++                        "c++-module-compile",
++                        "c++-module-codegen",
++                        "lto-backend",
++                        "clif-match",
++                    ],
++                    flag_groups = [
++                        flag_group(
++                            flags = [
++                                "-std=c++14",
++                                "-xc++",
++                                # Needed to compile shared libraries.
++                                "-fPIC",
++                            ],
++                        ),
++                    ],
++                ),
++            ],
++            enabled = True,
++        ),
++        feature(
++            name = "default_link_flags",
++            flag_sets = [
++                flag_set(
++                    actions = [
++                        "c++-link-executable",
++                        "c++-link-dynamic-library",
++                        "c++-link-nodeps-dynamic-library",
++                    ],
++                    flag_groups = [
++                        flag_group(
++                            flags = [
++                                "--target=x86_64-fuchsia",
++                                "--driver-mode=g++",
++                                "-lzircon",
++                            ],
++                        ),
++                    ],
++                ),
++            ],
++            enabled = True,
++        ),
++        feature(
++            name = "supports_pic",
++            enabled = True,
++        ),
++    ]
++    return cc_common.create_cc_toolchain_config_info(
++        ctx = ctx,
++        toolchain_identifier = "crosstool-1.x.x-llvm-fuchsia-x86_64",
++        host_system_name = "x86_64-unknown-linux-gnu",
++        target_system_name = "x86_64-fuchsia",
++        target_cpu = "x86_64",
++        target_libc = "fuchsia",
++        compiler = "llvm",
++        abi_version = "local",
++        abi_libc_version = "local",
++        tool_paths = tool_paths,
++        # Implicit dependencies for Fuchsia system functionality
++        cxx_builtin_include_directories = [
++            "%{SYSROOT_X64}/include", # Platform parts of libc.
++            "%{CROSSTOOL_ROOT}/clang/lib/x86_64-fuchsia/include/c++/v1", # Platform libc++.
++            "%{CROSSTOOL_ROOT}/clang/lib/clang/8.0.0/include", # Platform libc++.
++        ],
++        builtin_sysroot = "%{SYSROOT_X64}",
++        features = features,
++        cc_target_os = "fuchsia",
++    )
++
++cc_toolchain_config = rule(
++    implementation = _impl,
++    attrs = {},
++    provides = [CcToolchainConfigInfo],
++)
+diff --git a/build_defs/internal/crosstool/crosstool.bzl b/build_defs/internal/crosstool/crosstool.bzl
+index 0288e97..8cb93d9 100644
+--- a/build_defs/internal/crosstool/crosstool.bzl
++++ b/build_defs/internal/crosstool/crosstool.bzl
+@@ -56,10 +56,10 @@ def _configure_crosstool_impl(repository_ctx):
+     # https://github.com/bazelbuild/bazel/issues/3901
+     sysroot_x64 = repository_ctx.path(
+         Label("@fuchsia_sdk//arch/x64/sysroot:BUILD")).dirname
+-    # Set up the CROSSTOOL file from the template.
++    # Set up the toolchain config file from the template.
+     repository_ctx.template(
+-        "CROSSTOOL",
+-        Label("@fuchsia_sdk//build_defs/internal/crosstool:CROSSTOOL.in"),
++        "cc_toolchain_config.bzl",
++        Label("@fuchsia_sdk//build_defs/internal/crosstool:cc_toolchain_config.bzl.in"),
+         substitutions = {
+             "%{SYSROOT_X64}": str(sysroot_x64),
+             "%{CROSSTOOL_ROOT}": str(repository_ctx.path("."))
+-- 
+2.30.0.280.ga3ce27912f-goog

@@ -1,0 +1,29 @@
+From 0c9ea1e2c02f4801b8aa0cf0bbd345d50c8098fe Mon Sep 17 00:00:00 2001
+From: Aidan Wolter <wolter.aidan@gmail.com>
+Date: Sun, 10 May 2020 03:05:00 -0700
+Subject: [PATCH 2/2] Bump subpar version to 2.0.0
+
+Newer versions of bazel complain with:
+
+'single_file' is no longer supported. use allow_single_file instead.
+
+Bumping the subpar version to fix this.
+---
+ build_defs/fuchsia_setup.bzl | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/build_defs/fuchsia_setup.bzl b/build_defs/fuchsia_setup.bzl
+index b960d5e..feee9f8 100644
+--- a/build_defs/fuchsia_setup.bzl
++++ b/build_defs/fuchsia_setup.bzl
+@@ -15,7 +15,7 @@ def fuchsia_setup(with_toolchain = False):
+     # Needed for the package component runner tool.
+     git_repository(
+         name = "subpar",
+-        tag = "1.0.0",
++        tag = "2.0.0",
+         remote = "https://fuchsia.googlesource.com/third_party/github.com/google/subpar.git",
+     )
+ 
+-- 
+2.30.0.280.ga3ce27912f-goog

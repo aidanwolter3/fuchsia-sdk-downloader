@@ -1,19 +1,38 @@
-# Fuchsia Bazel SDK
+# Fuchsia SDK Downloader
 
 **Version f0850bdc**
 
 Disclaimer: This is not an official Google project.
 
-## How to use this SDK
+The Fuchsia SDK supports both mac and linux environments, but in two separate
+SDKs. This Downloader will choose the right Fuchsia SDK based on the
+environment, so that your project does not need to be hardcoded to either mac or
+linux.
 
-Note: This is not the cleanest at the moment. It would be nice to upstream the
-local patches, create releases with archives for the SDKs, and include the logic
-for downloading the appropriate SDK archive into this repository.
+## Usage
 
-The `linux` and `mac` branches hold the actual SDKs for each corresponding
-platform. Simply clone the repository, then checkout the proper branch.
+**Workspace**
+```
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
-## How was this SDK generated?
+# Fetch the downloader
+git_repository(
+  name = "fuchsia_sdk_downloader",
+  remote = "https://github.com/aidanwolter3/fuchsia-sdk-downloader",
+)
+
+# Download the correct Fuchsia SDK
+load("@fuchsia_sdk_downloader//:download.bzl", "download_fuchsia_sdk")
+download_fuchsia_sdk(
+    name = "fuchsia_sdk",
+)
+
+# Prepare the Fuchsia SDK
+load("@fuchsia_sdk//build_defs:fuchsia_setup.bzl", "fuchsia_setup")
+fuchsia_setup(with_toolchain = True)
+```
+
+## How was the SDK generated?
 1. Clone fuchsia following the steps on fuchsia.dev
 2. Sync to the version
 ```bash
@@ -35,3 +54,8 @@ platform. Simply clone the repository, then checkout the proper branch.
     --archive out/default/sdk/archive/core.tar.gz \
     --output ~/fuchsia-bazel-sdk
 ```
+
+## Local patches
+
+The Fuchsia SDK does not work out-of-the-box, so I have manually applied some
+patches to get it working. These are found in the `patches` directory.
